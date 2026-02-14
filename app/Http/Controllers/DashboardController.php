@@ -28,13 +28,14 @@ class DashboardController extends Controller
             ->get();
 
         // Get pending tasks across all projects
+        // Use CASE for cross-database priority ordering (SQLite doesn't have FIELD)
         $pendingTasks = Task::whereHas('project', function ($query) use ($user) {
             $query->where('user_id', $user->id)
                 ->where('is_archived', false);
         })
             ->with('project')
             ->where('is_completed', false)
-            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END")
             ->orderBy('due_date')
             ->take(5)
             ->get();
