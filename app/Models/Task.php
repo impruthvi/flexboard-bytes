@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * LESSON: Basic Relationships (Branch 06)
+ * LESSON: Many-to-Many Relationships (Branch 07)
  *
  * This model demonstrates:
  * - Branch 02: Mass assignment protection
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * - Branch 04: Local and dynamic query scopes
  * - Branch 05: Soft deletes
  * - Branch 06: BelongsTo and HasMany relationships
+ * - Branch 07: BelongsToMany (Tasks ↔ Tags)
  */
 class Task extends Model
 {
@@ -46,17 +48,10 @@ class Task extends Model
     }
 
     // =========================================================================
-    // LESSON: RELATIONSHIPS (Branch 06)
+    // RELATIONSHIPS (Branch 06 & 07)
     // =========================================================================
 
     /**
-     * LESSON: BelongsTo Relationship
-     *
-     * A Task belongs to a Project.
-     * The foreign key (project_id) is on THIS table (tasks).
-     *
-     * Usage: $task->project  // Returns the Project model
-     *
      * @return BelongsTo<Project, $this>
      */
     public function project(): BelongsTo
@@ -65,17 +60,31 @@ class Task extends Model
     }
 
     /**
-     * LESSON: HasMany Relationship
-     *
-     * A Task can have many Flexes (celebration messages).
-     *
-     * Usage: $task->flexes  // Returns Collection of Flex models
-     *
      * @return HasMany<Flex, $this>
      */
     public function flexes(): HasMany
     {
         return $this->hasMany(Flex::class);
+    }
+
+    /**
+     * LESSON: BelongsToMany Relationship (Branch 07)
+     *
+     * A Task can have many Tags (and vice versa).
+     * Uses the 'task_tag' pivot table.
+     *
+     * Usage:
+     * $task->tags  // Collection of Tag models
+     * $task->tags()->attach([1, 2, 3])  // Add tags
+     * $task->tags()->sync([1, 2])  // Replace all tags
+     * $task->tags()->detach(1)  // Remove a tag
+     *
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'task_tag')
+            ->withTimestamps();
     }
 
     // =========================================================================

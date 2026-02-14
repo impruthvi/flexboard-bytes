@@ -1,343 +1,309 @@
-# Branch 06: Basic Relationships
+# Branch 07: Many-to-Many Relationships
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- One-to-Many relationships (`hasMany` / `belongsTo`)
-- One-to-One relationships (`hasOne` / `belongsTo`)
-- How foreign keys connect tables
-- Querying through relationships
+- When to use Many-to-Many relationships
+- How pivot tables work
+- Attaching, detaching, and syncing related models
+- Working with pivot table data
 
 ---
 
-## Relationship Types Overview
+## When to Use Many-to-Many
 
-| Relationship | Example | Method |
-|--------------|---------|--------|
-| One-to-Many | User has many Projects | `hasMany()` |
-| Many-to-One | Project belongs to User | `belongsTo()` |
-| One-to-One | User has one Profile | `hasOne()` |
+Use Many-to-Many when:
+- A Task can have many Tags
+- A Tag can belong to many Tasks
+- A User can have many Badges
+- A Badge can belong to many Users
+
+Neither "owns" the other - they're associated!
 
 ---
 
-## One-to-Many: User → Projects
+## Pivot Tables
 
-A User can have many Projects. A Project belongs to one User.
+Many-to-Many needs a "pivot" (or "junction") table to store the relationships.
 
-### Database Setup
+### Naming Convention
 
-```php
-// projects table migration
-$table->foreignId('user_id')->constrained()->cascadeOnDelete();
-```
+The pivot table name combines both model names in **alphabetical order**, snake_case, singular:
 
-### Model Setup
+| Models | Pivot Table Name |
+|--------|------------------|
+| Tag + Task | `tag_task` (alphabetical) |
+| Badge + User | `badge_user` |
+| Role + User | `role_user` |
 
-```php
-// User.php
-public function projects(): HasMany
-{
-    return $this->hasMany(Project::class);
-}
-
-// Project.php
-public function user(): BelongsTo
-{
-    return $this->belongsTo(User::class);
-}
-```
-
-### Usage
+### Pivot Table Migration
 
 ```php
-// Get all projects for a user
-$user->projects;  // Collection of Project models
+// Pivot tables typically only have foreign keys
+Schema::create('tag_task', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('tag_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('task_id')->constrained()->cascadeOnDelete();
+    $table->timestamps();
 
-// Get the user who owns a project
-$project->user;  // Single User model
-
-// Create a project for a user
-$user->projects()->create([
-    'name' => 'New Project',
-]);
-
-// Count projects
-$user->projects()->count();
-
-// Query through relationship
-$user->projects()->where('is_active', true)->get();
+    // Prevent duplicates
+    $table->unique(['tag_id', 'task_id']);
+});
 ```
 
 ---
 
-## One-to-Many: Project → Tasks
+## Setting Up the Relationship
 
-A Project can have many Tasks. A Task belongs to one Project.
-
-### Model Setup
+### Both Models Need `belongsToMany()`
 
 ```php
-// Project.php
-public function tasks(): HasMany
-{
-    return $this->hasMany(Task::class);
-}
-
 // Task.php
-public function project(): BelongsTo
+public function tags(): BelongsToMany
 {
-    return $this->belongsTo(Project::class);
+    return $this->belongsToMany(Tag::class);
+}
+
+// Tag.php
+public function tasks(): BelongsToMany
+{
+    return $this->belongsToMany(Task::class);
 }
 ```
 
-### Usage
+### Custom Pivot Table Name
+
+If your pivot table doesn't follow conventions:
 
 ```php
-// Get all tasks for a project
-$project->tasks;
+public function tags(): BelongsToMany
+{
+    return $this->belongsToMany(Tag::class, 'task_tags');
+}
+```
 
-// Get the project for a task
-$task->project;
+---
 
-// Create a task for a project
-$project->tasks()->create([
-    'title' => 'Fix the bug',
-    'priority' => 'high',
+## Attaching & Detaching
+
+### Attach (Add Relationship)
+
+```php
+// Add a single tag
+$task->tags()->attach($tagId);
+
+// Add multiple tags
+$task->tags()->attach([1, 2, 3]);
+
+// Add with pivot data
+$task->tags()->attach($tagId, ['added_by' => auth()->id()]);
+```
+
+### Detach (Remove Relationship)
+
+```php
+// Remove a single tag
+$task->tags()->detach($tagId);
+
+// Remove multiple tags
+$task->tags()->detach([1, 2, 3]);
+
+// Remove ALL tags
+$task->tags()->detach();
+```
+
+### Sync (Replace All)
+
+```php
+// Replace all tags with these
+$task->tags()->sync([1, 2, 3]);
+
+// Sync without detaching (only adds, never removes)
+$task->tags()->syncWithoutDetaching([4, 5]);
+```
+
+### Toggle (Attach or Detach)
+
+```php
+// If attached -> detach, if detached -> attach
+$task->tags()->toggle([1, 2, 3]);
+```
+
+---
+
+## Pivot Table with Extra Columns
+
+Sometimes you need extra data on the relationship itself.
+
+### Migration
+
+```php
+Schema::create('badge_user', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('badge_id')->constrained()->cascadeOnDelete();
+    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+    $table->timestamp('earned_at');  // When was it earned?
+    $table->text('notes')->nullable();
+    $table->timestamps();
+});
+```
+
+### Access Pivot Data
+
+```php
+// Tell Laravel which pivot columns to load
+public function badges(): BelongsToMany
+{
+    return $this->belongsToMany(Badge::class)
+                ->withPivot('earned_at', 'notes')
+                ->withTimestamps();
+}
+
+// Access pivot data
+foreach ($user->badges as $badge) {
+    echo $badge->pivot->earned_at;
+    echo $badge->pivot->notes;
+}
+```
+
+### Attach with Pivot Data
+
+```php
+$user->badges()->attach($badgeId, [
+    'earned_at' => now(),
+    'notes' => 'First task completed!',
 ]);
-
-// Chain with scopes!
-$project->tasks()->incomplete()->highPriority()->get();
-```
-
----
-
-## One-to-One: User → Flex (Latest Flex)
-
-Sometimes you want just ONE related record.
-
-### Model Setup
-
-```php
-// User.php
-public function latestFlex(): HasOne
-{
-    return $this->hasOne(Flex::class)->latestOfMany();
-}
-
-// Or get the first one
-public function firstFlex(): HasOne
-{
-    return $this->hasOne(Flex::class)->oldestOfMany();
-}
-```
-
-### Usage
-
-```php
-$user->latestFlex;  // Single Flex model (most recent)
-```
-
----
-
-## Foreign Key Conventions
-
-Laravel auto-detects foreign keys based on naming:
-
-| Model | Expected Foreign Key |
-|-------|---------------------|
-| `User` | `user_id` |
-| `Project` | `project_id` |
-| `TaskList` | `task_list_id` |
-
-### Custom Foreign Keys
-
-```php
-// If your column isn't named conventionally
-public function owner(): BelongsTo
-{
-    return $this->belongsTo(User::class, 'owner_id');
-}
-
-// Custom foreign key AND owner key
-public function author(): BelongsTo
-{
-    return $this->belongsTo(User::class, 'author_uuid', 'uuid');
-}
-```
-
----
-
-## Creating Related Records
-
-### Method 1: Using `create()`
-
-```php
-$project->tasks()->create([
-    'title' => 'New Task',
-]);
-// Automatically sets project_id!
-```
-
-### Method 2: Using `save()`
-
-```php
-$task = new Task(['title' => 'New Task']);
-$project->tasks()->save($task);
-```
-
-### Method 3: Manual (Less Clean)
-
-```php
-$task = Task::create([
-    'title' => 'New Task',
-    'project_id' => $project->id,  // Manual - not recommended
-]);
-```
-
----
-
-## Querying Relationships
-
-### Has Relationship
-
-```php
-// Users who have at least one project
-User::has('projects')->get();
-
-// Users with 5+ projects
-User::has('projects', '>=', 5)->get();
-```
-
-### Where Has (Filter by Related Data)
-
-```php
-// Users with high-priority tasks
-User::whereHas('projects.tasks', function ($query) {
-    $query->where('priority', 'high');
-})->get();
-```
-
-### With Count
-
-```php
-// Get users with project count
-User::withCount('projects')->get();
-
-foreach ($users as $user) {
-    echo $user->projects_count;  // Added attribute!
-}
 ```
 
 ---
 
 ## FlexBoard Examples
 
-### User Model
+### Task ↔ Tag (Simple)
 
 ```php
-class User extends Authenticatable
+// Task.php
+public function tags(): BelongsToMany
 {
-    public function projects(): HasMany
-    {
-        return $this->hasMany(Project::class);
-    }
-
-    public function flexes(): HasMany
-    {
-        return $this->hasMany(Flex::class);
-    }
-
-    public function latestFlex(): HasOne
-    {
-        return $this->hasOne(Flex::class)->latestOfMany();
-    }
+    return $this->belongsToMany(Tag::class, 'task_tag');
 }
+
+// Tag.php
+public function tasks(): BelongsToMany
+{
+    return $this->belongsToMany(Task::class, 'task_tag');
+}
+
+// Usage
+$task->tags()->attach([1, 2, 3]);
+$task->tags;  // Collection of Tag models
 ```
 
-### Project Model
+### User ↔ Badge (With Pivot Data)
 
 ```php
-class Project extends Model
+// User.php
+public function badges(): BelongsToMany
 {
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function tasks(): HasMany
-    {
-        return $this->hasMany(Task::class);
-    }
+    return $this->belongsToMany(Badge::class)
+                ->withPivot('earned_at', 'notes')
+                ->withTimestamps();
 }
+
+// Badge.php
+public function users(): BelongsToMany
+{
+    return $this->belongsToMany(User::class)
+                ->withPivot('earned_at', 'notes')
+                ->withTimestamps();
+}
+
+// Award a badge
+$user->badges()->attach($badge->id, [
+    'earned_at' => now(),
+    'notes' => 'Completed 10 tasks!',
+]);
+
+// Check when badge was earned
+$user->badges->first()->pivot->earned_at;
 ```
 
-### Task Model
+---
+
+## Querying Many-to-Many
+
+### Filter by Related Models
 
 ```php
-class Task extends Model
-{
-    public function project(): BelongsTo
-    {
-        return $this->belongsTo(Project::class);
-    }
-}
+// Tasks with a specific tag
+Task::whereHas('tags', function ($query) {
+    $query->where('name', 'urgent');
+})->get();
+
+// Tasks with ANY of these tags
+Task::whereHas('tags', function ($query) {
+    $query->whereIn('name', ['urgent', 'bug']);
+})->get();
+```
+
+### Count Related Models
+
+```php
+// Users with badge count
+User::withCount('badges')->get();
+
+// $user->badges_count is now available
+```
+
+### Filter by Pivot Data
+
+```php
+// Users who earned badge after a date
+$badge->users()
+      ->wherePivot('earned_at', '>', now()->subWeek())
+      ->get();
 ```
 
 ---
 
 ## Quick Reference
 
-| From | To | Relationship | Access |
-|------|-----|--------------|--------|
-| User | Projects | `hasMany` | `$user->projects` |
-| Project | User | `belongsTo` | `$project->user` |
-| Project | Tasks | `hasMany` | `$project->tasks` |
-| Task | Project | `belongsTo` | `$task->project` |
-
----
-
-## Common Gotchas
-
-### 1. Accessing vs Querying
-
-```php
-// PROPERTY - returns Collection/Model (cached after first access)
-$user->projects;
-
-// METHOD - returns query builder (for chaining)
-$user->projects()->where(...)->get();
-```
-
-### 2. Null Relationships
-
-```php
-// This can be null if no user is set!
-$project->user;  // null if user_id is null
-
-// Safe access
-$project->user?->name;  // PHP 8 nullsafe operator
-```
+| Method | Purpose |
+|--------|---------|
+| `attach($ids)` | Add relationships |
+| `detach($ids)` | Remove relationships |
+| `sync($ids)` | Replace all relationships |
+| `syncWithoutDetaching($ids)` | Add without removing |
+| `toggle($ids)` | Flip attachment state |
+| `$model->pivot` | Access pivot data |
+| `withPivot()` | Include pivot columns |
+| `withTimestamps()` | Auto-manage pivot timestamps |
 
 ---
 
 ## Hands-On Exercise
 
-1. Add relationships to User, Project, and Task models
-2. Create a Flex model with a `user()` relationship
-3. Test in tinker:
+1. Create Tag and Badge models with migrations
+2. Create pivot table migrations (`task_tag`, `badge_user`)
+3. Add `belongsToMany` relationships to models
+4. Test in tinker:
 
 ```php
+$task = Task::first();
+$task->tags()->attach([1, 2]);
+$task->tags;  // See the tags!
+
 $user = User::first();
-$user->projects()->create(['name' => 'Test Project']);
-$user->projects;  // See the new project!
+$user->badges()->attach(1, ['earned_at' => now()]);
+$user->badges->first()->pivot->earned_at;
 ```
 
 ---
 
 ## Next Branch
 
-Continue to `07-many-to-many` to learn about many-to-many relationships with pivot tables!
+Continue to `08-polymorphic` to learn about polymorphic relationships!
 
 ```bash
-git checkout 07-many-to-many
+git checkout 08-polymorphic
 ```

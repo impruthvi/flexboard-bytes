@@ -4,16 +4,18 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * LESSON: Basic Relationships (Branch 06)
+ * LESSON: Many-to-Many Relationships (Branch 07)
  *
- * The User model is the center of our relationship web.
- * A User has many Projects, and through projects, has many Tasks.
+ * The User model now includes:
+ * - Branch 06: HasMany, HasOne, HasManyThrough
+ * - Branch 07: BelongsToMany (Users ↔ Badges)
  */
 class User extends Authenticatable
 {
@@ -49,17 +51,10 @@ class User extends Authenticatable
     }
 
     // =========================================================================
-    // LESSON: RELATIONSHIPS (Branch 06)
+    // RELATIONSHIPS (Branch 06 & 07)
     // =========================================================================
 
     /**
-     * LESSON: HasMany Relationship
-     *
-     * A User has many Projects.
-     * The foreign key (user_id) is on the RELATED table (projects).
-     *
-     * Usage: $user->projects  // Returns Collection of Project models
-     *
      * @return HasMany<Project, $this>
      */
     public function projects(): HasMany
@@ -68,12 +63,6 @@ class User extends Authenticatable
     }
 
     /**
-     * LESSON: HasMany Relationship
-     *
-     * A User has many Flexes (celebration messages).
-     *
-     * Usage: $user->flexes  // Returns Collection of Flex models
-     *
      * @return HasMany<Flex, $this>
      */
     public function flexes(): HasMany
@@ -82,13 +71,6 @@ class User extends Authenticatable
     }
 
     /**
-     * LESSON: HasOne Relationship (Latest of Many)
-     *
-     * Get just the most recent flex for a user.
-     * Uses latestOfMany() to get the newest one.
-     *
-     * Usage: $user->latestFlex  // Returns single Flex model or null
-     *
      * @return HasOne<Flex, $this>
      */
     public function latestFlex(): HasOne
@@ -97,17 +79,30 @@ class User extends Authenticatable
     }
 
     /**
-     * LESSON: HasManyThrough (Preview for later)
-     *
-     * Get all tasks for a user across all their projects.
-     * This traverses: User -> Projects -> Tasks
-     *
-     * Usage: $user->tasks  // All tasks from all user's projects
-     *
      * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough<Task, Project, $this>
      */
     public function tasks(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
     {
         return $this->hasManyThrough(Task::class, Project::class);
+    }
+
+    /**
+     * LESSON: BelongsToMany with Pivot Data (Branch 07)
+     *
+     * A User can have many Badges (achievements).
+     * The pivot table stores when the badge was earned.
+     *
+     * Usage:
+     * $user->badges  // Collection of Badge models
+     * $user->badges()->attach($badgeId, ['earned_at' => now()])
+     * $user->badges->first()->pivot->earned_at  // Access pivot data
+     *
+     * @return BelongsToMany<Badge, $this>
+     */
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(Badge::class)
+            ->withPivot('earned_at', 'notes')  // Include extra pivot columns
+            ->withTimestamps();                 // Auto-manage pivot timestamps
     }
 }
