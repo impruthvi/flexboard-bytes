@@ -5,25 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * LESSON: Soft Deletes (Branch 05)
+ * LESSON: Basic Relationships (Branch 06)
  *
  * This model demonstrates:
  * - Branch 02: Mass assignment protection
  * - Branch 03: Accessors, mutators, and casting
  * - Branch 04: Local and dynamic query scopes
  * - Branch 05: Soft deletes
+ * - Branch 06: BelongsTo and HasMany relationships
  */
 class Task extends Model
 {
-    /**
-     * LESSON: SoftDeletes Trait (Branch 05)
-     *
-     * Tasks can be soft-deleted. When a project is deleted,
-     * its tasks are cascaded (see Project model's booted method).
-     */
     use SoftDeletes;
 
     /**
@@ -49,19 +46,43 @@ class Task extends Model
     }
 
     // =========================================================================
-    // LESSON: LOCAL SCOPES (Branch 04)
-    //
-    // Scopes are reusable query constraints. Define once, use everywhere!
-    // Method name starts with 'scope', but you call it without that prefix.
+    // LESSON: RELATIONSHIPS (Branch 06)
     // =========================================================================
 
     /**
-     * LESSON: Basic Local Scope
+     * LESSON: BelongsTo Relationship
      *
-     * Filter to only incomplete tasks.
+     * A Task belongs to a Project.
+     * The foreign key (project_id) is on THIS table (tasks).
      *
-     * Usage: Task::incomplete()->get();
+     * Usage: $task->project  // Returns the Project model
      *
+     * @return BelongsTo<Project, $this>
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * LESSON: HasMany Relationship
+     *
+     * A Task can have many Flexes (celebration messages).
+     *
+     * Usage: $task->flexes  // Returns Collection of Flex models
+     *
+     * @return HasMany<Flex, $this>
+     */
+    public function flexes(): HasMany
+    {
+        return $this->hasMany(Flex::class);
+    }
+
+    // =========================================================================
+    // LOCAL SCOPES (Branch 04)
+    // =========================================================================
+
+    /**
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -71,12 +92,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Another Basic Scope
-     *
-     * Filter to only completed tasks.
-     *
-     * Usage: Task::completed()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -86,13 +101,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Combined Scope
-     *
-     * High priority + incomplete = urgent!
-     * Scopes can combine multiple conditions.
-     *
-     * Usage: Task::urgent()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -103,10 +111,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Priority Scope
-     *
-     * Usage: Task::highPriority()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -116,13 +120,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Dynamic Scope with Parameter
-     *
-     * Pass a parameter to make scopes flexible!
-     *
-     * Usage: Task::ofPriority('high')->get();
-     *        Task::ofPriority('low')->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -132,10 +129,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Another Dynamic Scope
-     *
-     * Usage: Task::ofDifficulty('nightmare')->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -145,11 +138,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Scope with Optional Parameter
-     *
-     * Usage: Task::highValue()->get();      // Points >= 50 (default)
-     *        Task::highValue(100)->get();   // Points >= 100
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -159,10 +147,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Date-based Scope
-     *
-     * Usage: Task::createdToday()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -172,12 +156,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Complex Date Scope
-     *
-     * Completed tasks from this week - great for leaderboards!
-     *
-     * Usage: Task::completedThisWeek()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -191,10 +169,6 @@ class Task extends Model
     }
 
     /**
-     * LESSON: Ordering Scope
-     *
-     * Usage: Task::recent()->get();
-     *
      * @param  Builder<Task>  $query
      * @return Builder<Task>
      */
@@ -204,7 +178,7 @@ class Task extends Model
     }
 
     // =========================================================================
-    // ACCESSORS (from Branch 03)
+    // ACCESSORS (Branch 03)
     // =========================================================================
 
     protected function priorityColor(): Attribute

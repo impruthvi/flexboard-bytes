@@ -4,29 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
- * LESSON: Soft Deletes (Branch 05)
+ * LESSON: Basic Relationships (Branch 06)
  *
  * This model demonstrates:
  * - Branch 01: Naming conventions
  * - Branch 02: Mass assignment protection
  * - Branch 03: Accessors and mutators
  * - Branch 05: Soft deletes with cascading
+ * - Branch 06: BelongsTo and HasMany relationships
  */
 class Project extends Model
 {
-    /**
-     * LESSON: SoftDeletes Trait (Branch 05)
-     *
-     * This trait enables soft deletes:
-     * - delete() sets deleted_at instead of removing record
-     * - Records with deleted_at are hidden from queries by default
-     * - Use withTrashed() to include deleted records
-     * - Use restore() to bring back deleted records
-     */
     use SoftDeletes;
 
     /**
@@ -38,23 +32,57 @@ class Project extends Model
     ];
 
     /**
-     * LESSON: Cascade soft deletes to related models
-     *
-     * When a project is soft-deleted, its tasks should also be soft-deleted.
-     * When restored, tasks should be restored too.
+     * Cascade soft deletes to related models.
      */
     protected static function booted(): void
     {
         static::deleting(function (Project $project) {
-            // Soft delete all tasks when project is deleted
             $project->tasks()->delete();
         });
 
         static::restoring(function (Project $project) {
-            // Restore all tasks when project is restored
             $project->tasks()->withTrashed()->restore();
         });
     }
+
+    // =========================================================================
+    // LESSON: RELATIONSHIPS (Branch 06)
+    // =========================================================================
+
+    /**
+     * LESSON: BelongsTo Relationship
+     *
+     * A Project belongs to a User (the owner).
+     * The foreign key (user_id) is on THIS table (projects).
+     *
+     * Usage: $project->user  // Returns the User model
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * LESSON: HasMany Relationship
+     *
+     * A Project has many Tasks.
+     * The foreign key (project_id) is on the RELATED table (tasks).
+     *
+     * Usage: $project->tasks  // Returns Collection of Task models
+     *        $project->tasks()->incomplete()->get()  // Chain with scopes!
+     *
+     * @return HasMany<Task, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    // =========================================================================
+    // ACCESSORS (Branch 03)
+    // =========================================================================
 
     protected function name(): Attribute
     {
@@ -99,12 +127,4 @@ class Project extends Model
         'completion_percentage',
         'short_description',
     ];
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Task, $this>
-     */
-    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Task::class);
-    }
 }

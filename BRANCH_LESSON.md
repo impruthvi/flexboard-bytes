@@ -1,217 +1,284 @@
-# Branch 05: Timestamps & Soft Deletes
+# Branch 06: Basic Relationships
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- How Laravel auto-manages `created_at` and `updated_at`
-- How soft deletes work (mark as deleted vs actually delete)
-- How to restore soft-deleted records
-- Querying with and without soft-deleted records
+- One-to-Many relationships (`hasMany` / `belongsTo`)
+- One-to-One relationships (`hasOne` / `belongsTo`)
+- How foreign keys connect tables
+- Querying through relationships
 
 ---
 
-## Timestamps: Auto-Magic Date Management
+## Relationship Types Overview
 
-### How It Works
-
-When you have `$table->timestamps()` in your migration, Laravel:
-- Sets `created_at` when you CREATE a record
-- Updates `updated_at` when you UPDATE a record
-
-```php
-$project = Project::create(['name' => 'FlexBoard']);
-// created_at: 2024-01-15 10:30:00
-// updated_at: 2024-01-15 10:30:00
-
-$project->update(['name' => 'FlexBoard Pro']);
-// created_at: 2024-01-15 10:30:00 (unchanged)
-// updated_at: 2024-01-15 10:45:00 (auto-updated!)
-```
-
-### Customizing Timestamps
-
-```php
-// Disable timestamps entirely
-public $timestamps = false;
-
-// Use custom column names
-const CREATED_AT = 'creation_date';
-const UPDATED_AT = 'last_modified';
-
-// Touch (update updated_at) without changing anything else
-$project->touch();
-```
+| Relationship | Example | Method |
+|--------------|---------|--------|
+| One-to-Many | User has many Projects | `hasMany()` |
+| Many-to-One | Project belongs to User | `belongsTo()` |
+| One-to-One | User has one Profile | `hasOne()` |
 
 ---
 
-## Soft Deletes: Delete Without Destroying
+## One-to-Many: User → Projects
 
-### The Problem with Hard Deletes
+A User can have many Projects. A Project belongs to one User.
+
+### Database Setup
 
 ```php
-// GONE FOREVER! 😱
-$project->delete();
-
-// User: "Wait, I didn't mean to delete that!"
-// You: "Sorry, it's gone..."
+// projects table migration
+$table->foreignId('user_id')->constrained()->cascadeOnDelete();
 ```
 
-### The Solution: Soft Deletes
-
-Instead of removing the record, we mark it as deleted with a timestamp.
+### Model Setup
 
 ```php
-// Record stays in database with deleted_at = 2024-01-15 10:30:00
-$project->delete();
-
-// User: "I need that back!"
-// You: "No problem!" 😎
-$project->restore();
-```
-
----
-
-## Setting Up Soft Deletes
-
-### Step 1: Add the Column
-
-```php
-// In your migration
-Schema::create('projects', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->timestamps();
-    $table->softDeletes();  // Adds 'deleted_at' column
-});
-```
-
-### Step 2: Use the Trait
-
-```php
-use Illuminate\Database\Eloquent\SoftDeletes;
-
-class Project extends Model
+// User.php
+public function projects(): HasMany
 {
-    use SoftDeletes;  // Enable soft deletes!
+    return $this->hasMany(Project::class);
+}
+
+// Project.php
+public function user(): BelongsTo
+{
+    return $this->belongsTo(User::class);
+}
+```
+
+### Usage
+
+```php
+// Get all projects for a user
+$user->projects;  // Collection of Project models
+
+// Get the user who owns a project
+$project->user;  // Single User model
+
+// Create a project for a user
+$user->projects()->create([
+    'name' => 'New Project',
+]);
+
+// Count projects
+$user->projects()->count();
+
+// Query through relationship
+$user->projects()->where('is_active', true)->get();
+```
+
+---
+
+## One-to-Many: Project → Tasks
+
+A Project can have many Tasks. A Task belongs to one Project.
+
+### Model Setup
+
+```php
+// Project.php
+public function tasks(): HasMany
+{
+    return $this->hasMany(Task::class);
+}
+
+// Task.php
+public function project(): BelongsTo
+{
+    return $this->belongsTo(Project::class);
+}
+```
+
+### Usage
+
+```php
+// Get all tasks for a project
+$project->tasks;
+
+// Get the project for a task
+$task->project;
+
+// Create a task for a project
+$project->tasks()->create([
+    'title' => 'Fix the bug',
+    'priority' => 'high',
+]);
+
+// Chain with scopes!
+$project->tasks()->incomplete()->highPriority()->get();
+```
+
+---
+
+## One-to-One: User → Flex (Latest Flex)
+
+Sometimes you want just ONE related record.
+
+### Model Setup
+
+```php
+// User.php
+public function latestFlex(): HasOne
+{
+    return $this->hasOne(Flex::class)->latestOfMany();
+}
+
+// Or get the first one
+public function firstFlex(): HasOne
+{
+    return $this->hasOne(Flex::class)->oldestOfMany();
+}
+```
+
+### Usage
+
+```php
+$user->latestFlex;  // Single Flex model (most recent)
+```
+
+---
+
+## Foreign Key Conventions
+
+Laravel auto-detects foreign keys based on naming:
+
+| Model | Expected Foreign Key |
+|-------|---------------------|
+| `User` | `user_id` |
+| `Project` | `project_id` |
+| `TaskList` | `task_list_id` |
+
+### Custom Foreign Keys
+
+```php
+// If your column isn't named conventionally
+public function owner(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'owner_id');
+}
+
+// Custom foreign key AND owner key
+public function author(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'author_uuid', 'uuid');
 }
 ```
 
 ---
 
-## Working with Soft Deletes
+## Creating Related Records
 
-### Deleting (Soft)
+### Method 1: Using `create()`
 
 ```php
-$project->delete();
-// Sets deleted_at = now()
-// Record is NOT removed from database!
+$project->tasks()->create([
+    'title' => 'New Task',
+]);
+// Automatically sets project_id!
 ```
 
-### Querying (Auto-Excludes Deleted)
+### Method 2: Using `save()`
 
 ```php
-// By default, soft-deleted records are hidden
-Project::all();  // Only returns non-deleted projects
-
-// Explicitly include soft-deleted
-Project::withTrashed()->get();
-
-// ONLY get soft-deleted
-Project::onlyTrashed()->get();
+$task = new Task(['title' => 'New Task']);
+$project->tasks()->save($task);
 ```
 
-### Restoring
+### Method 3: Manual (Less Clean)
 
 ```php
-// Bring it back!
-$project->restore();
-// Sets deleted_at = null
-```
-
-### Force Deleting (Permanent)
-
-```php
-// When you REALLY want to delete permanently
-$project->forceDelete();
-// Record is GONE from database!
+$task = Task::create([
+    'title' => 'New Task',
+    'project_id' => $project->id,  // Manual - not recommended
+]);
 ```
 
 ---
 
-## Checking Soft Delete Status
+## Querying Relationships
+
+### Has Relationship
 
 ```php
-if ($project->trashed()) {
-    echo "This project is soft-deleted";
-}
+// Users who have at least one project
+User::has('projects')->get();
 
-// Check in Blade
-@if($project->trashed())
-    <span class="text-red-500">Deleted</span>
-@endif
+// Users with 5+ projects
+User::has('projects', '>=', 5)->get();
 ```
 
----
-
-## Cascading Soft Deletes
-
-When a project is deleted, should its tasks be deleted too?
-
-### Option 1: Manual in Model
+### Where Has (Filter by Related Data)
 
 ```php
-protected static function booted(): void
-{
-    static::deleting(function (Project $project) {
-        // Soft delete all tasks when project is soft-deleted
-        $project->tasks()->delete();
-    });
-    
-    static::restoring(function (Project $project) {
-        // Restore tasks when project is restored
-        $project->tasks()->withTrashed()->restore();
-    });
+// Users with high-priority tasks
+User::whereHas('projects.tasks', function ($query) {
+    $query->where('priority', 'high');
+})->get();
+```
+
+### With Count
+
+```php
+// Get users with project count
+User::withCount('projects')->get();
+
+foreach ($users as $user) {
+    echo $user->projects_count;  // Added attribute!
 }
 ```
 
-### Option 2: Use a Package
-
-Consider `dyrynda/laravel-cascade-soft-deletes` for automatic cascading.
-
 ---
 
-## FlexBoard Example
+## FlexBoard Examples
+
+### User Model
 
 ```php
-class Project extends Model
+class User extends Authenticatable
 {
-    use SoftDeletes;
-
-    /**
-     * LESSON: Soft Deletes
-     *
-     * When you delete a project, it's not actually removed.
-     * The deleted_at column is set, and Eloquent hides it by default.
-     *
-     * Benefits:
-     * - User can restore accidentally deleted projects
-     * - You can audit what was deleted and when
-     * - Data is never truly lost (until force deleted)
-     */
-
-    /**
-     * Cascade soft deletes to tasks.
-     */
-    protected static function booted(): void
+    public function projects(): HasMany
     {
-        static::deleting(function (Project $project) {
-            $project->tasks()->delete();
-        });
+        return $this->hasMany(Project::class);
+    }
 
-        static::restoring(function (Project $project) {
-            $project->tasks()->withTrashed()->restore();
-        });
+    public function flexes(): HasMany
+    {
+        return $this->hasMany(Flex::class);
+    }
+
+    public function latestFlex(): HasOne
+    {
+        return $this->hasOne(Flex::class)->latestOfMany();
+    }
+}
+```
+
+### Project Model
+
+```php
+class Project extends Model
+{
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+}
+```
+
+### Task Model
+
+```php
+class Task extends Model
+{
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 }
 ```
@@ -220,68 +287,57 @@ class Project extends Model
 
 ## Quick Reference
 
-| Operation | Code | Result |
-|-----------|------|--------|
-| Soft delete | `$model->delete()` | Sets `deleted_at` |
-| Restore | `$model->restore()` | Clears `deleted_at` |
-| Force delete | `$model->forceDelete()` | Removes from DB |
-| Get all | `Model::all()` | Excludes deleted |
-| Include deleted | `Model::withTrashed()` | All records |
-| Only deleted | `Model::onlyTrashed()` | Only deleted |
-| Check if deleted | `$model->trashed()` | Returns bool |
+| From | To | Relationship | Access |
+|------|-----|--------------|--------|
+| User | Projects | `hasMany` | `$user->projects` |
+| Project | User | `belongsTo` | `$project->user` |
+| Project | Tasks | `hasMany` | `$project->tasks` |
+| Task | Project | `belongsTo` | `$task->project` |
 
 ---
 
 ## Common Gotchas
 
-### 1. Unique Constraints
+### 1. Accessing vs Querying
 
 ```php
-// Problem: Deleted "FlexBoard" blocks creating new "FlexBoard"
-$table->string('slug')->unique();
+// PROPERTY - returns Collection/Model (cached after first access)
+$user->projects;
 
-// Solution: Unique only when not deleted
-$table->string('slug');
-$table->unique(['slug', 'deleted_at']);
-
-// Or use a composite unique in MySQL 8+
-$table->rawIndex('UNIQUE INDEX projects_slug_unique (slug) WHERE deleted_at IS NULL');
+// METHOD - returns query builder (for chaining)
+$user->projects()->where(...)->get();
 ```
 
-### 2. Relationships Still Work
+### 2. Null Relationships
 
 ```php
-// Even if project is soft-deleted, you can still access it
-$task->project;  // Works! Returns the soft-deleted project
+// This can be null if no user is set!
+$project->user;  // null if user_id is null
 
-// To check in relationship
-$task->project()->withTrashed()->first();
+// Safe access
+$project->user?->name;  // PHP 8 nullsafe operator
 ```
 
 ---
 
 ## Hands-On Exercise
 
-1. Add `SoftDeletes` to your Project and Task models
-2. Add `$table->softDeletes()` to the migrations
-3. Run migrations fresh
-4. Test in tinker:
+1. Add relationships to User, Project, and Task models
+2. Create a Flex model with a `user()` relationship
+3. Test in tinker:
 
 ```php
-$project = Project::first();
-$project->delete();
-Project::all()->count();  // 0 (hidden)
-Project::withTrashed()->count();  // 1 (visible)
-$project->restore();
-Project::all()->count();  // 1 (back!)
+$user = User::first();
+$user->projects()->create(['name' => 'Test Project']);
+$user->projects;  // See the new project!
 ```
 
 ---
 
 ## Next Branch
 
-Continue to `06-basic-relationships` to learn about model relationships!
+Continue to `07-many-to-many` to learn about many-to-many relationships with pivot tables!
 
 ```bash
-git checkout 06-basic-relationships
+git checkout 07-many-to-many
 ```
