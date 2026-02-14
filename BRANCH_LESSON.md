@@ -1,215 +1,251 @@
-# Branch 01: Model Conventions
+# Branch 02: Mass Assignment Protection
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- Laravel's naming conventions for models and tables
-- How to customize table names and primary keys
-- How timestamps work in Eloquent
+- What mass assignment is and why it's dangerous
+- How to use `$fillable` to whitelist attributes
+- How to use `$guarded` to blacklist attributes
+- Best practices for protecting your models
 
 ---
 
-## The Convention Over Configuration Philosophy
+## What is Mass Assignment?
 
-Laravel follows **"Convention over Configuration"** - if you follow naming conventions, everything works automagically. Break them, and you need manual configuration.
-
----
-
-## 1. Model & Table Naming
-
-### The Convention (Auto-magic)
-
-| Model Name | Expected Table Name |
-|------------|---------------------|
-| `User`     | `users`             |
-| `Project`  | `projects`          |
-| `TaskList` | `task_lists`        |
-| `Category` | `categories`        |
-
-**Rule**: Model is `PascalCase` singular, table is `snake_case` plural.
-
-### Wrong Way (Don't do this)
+Mass assignment is when you set multiple model attributes at once using an array:
 
 ```php
-// Model: Project.php
-// Table: project (singular - WRONG!)
+// This is mass assignment
+$project = Project::create([
+    'name' => 'FlexBoard MVP',
+    'description' => 'The best task tracker ever',
+    'user_id' => 1,
+]);
 
-class Project extends Model
-{
-    // This will fail! Laravel looks for "projects" table
-}
-```
-
-### Right Way (Convention)
-
-```php
-// Model: Project.php  
-// Table: projects (plural - CORRECT!)
-
-class Project extends Model
-{
-    // Works automatically - no extra config needed!
-}
-```
-
-### Right Way (Custom Table - When Required)
-
-```php
-// If you MUST use a non-conventional table name
-class Project extends Model
-{
-    protected $table = 'tbl_projects'; // Legacy database? No problem!
-}
+// This is also mass assignment
+$project->update($request->all());
 ```
 
 ---
 
-## 2. Primary Key Conventions
+## The Danger: Mass Assignment Vulnerability
 
-### The Convention
+### The Attack Scenario
 
-- Primary key column: `id`
-- Type: Auto-incrementing integer
-- Laravel handles this automatically
-
-### Wrong Way
+Imagine your User model has an `is_admin` column. A malicious user could:
 
 ```php
-// Table has 'project_id' as primary key instead of 'id'
-class Project extends Model
+// Your innocent form
+POST /register
 {
-    // This breaks! Laravel expects 'id'
+    "name": "Priya Sharma",
+    "email": "priya@example.com",
+    "password": "secret123"
+}
+
+// Hacker's modified request
+POST /register
+{
+    "name": "Hacker Singh",
+    "email": "hacker@evil.com",
+    "password": "secret123",
+    "is_admin": true  // <- INJECTED!
 }
 ```
 
-### Right Way (Custom Primary Key)
+### Vulnerable Code (NEVER DO THIS!)
+
+```php
+// ❌ DANGEROUS - accepts any field from request
+User::create($request->all());
+
+// Hacker is now an admin! 🚨
+```
+
+---
+
+## Solution 1: $fillable (Whitelist)
+
+Define which attributes ARE mass assignable.
 
 ```php
 class Project extends Model
 {
-    protected $primaryKey = 'project_id';
+    // Only these fields can be mass assigned
+    protected $fillable = [
+        'name',
+        'description',
+        'user_id',
+    ];
     
-    // If it's NOT auto-incrementing:
-    public $incrementing = false;
-    
-    // If it's a string (UUID):
-    protected $keyType = 'string';
+    // 'is_admin', 'total_points', etc. are protected!
 }
+```
+
+### Now the attack fails:
+
+```php
+Project::create([
+    'name' => 'Legit Project',
+    'is_admin' => true,  // IGNORED! Not in $fillable
+]);
 ```
 
 ---
 
-## 3. Timestamps
+## Solution 2: $guarded (Blacklist)
 
-### The Convention
-
-Laravel expects `created_at` and `updated_at` columns and manages them automatically.
-
-### Wrong Way
+Define which attributes are NOT mass assignable.
 
 ```php
-// Table doesn't have created_at/updated_at columns
 class Project extends Model
 {
-    // ERROR: Column 'created_at' not found!
+    // These fields CANNOT be mass assigned
+    protected $guarded = [
+        'id',
+        'is_admin',
+        'total_points',
+    ];
+    
+    // Everything else is allowed
 }
 ```
 
-### Right Way (Disable Timestamps)
+### Special Case: Empty Guarded
 
 ```php
-class Project extends Model
-{
-    public $timestamps = false; // I don't need timestamps
-}
+// ⚠️ DANGER: Allows ALL fields to be mass assigned
+protected $guarded = [];
+
+// Only use this if you REALLY know what you're doing
+// and are manually validating every input!
 ```
 
-### Right Way (Custom Timestamp Columns)
+---
+
+## Best Practices
+
+### DO ✅
 
 ```php
+// 1. Always use $fillable (preferred) or $guarded
+protected $fillable = ['name', 'description'];
+
+// 2. Validate input before mass assignment
+$validated = $request->validate([
+    'name' => 'required|string|max:255',
+    'description' => 'nullable|string',
+]);
+Project::create($validated);
+
+// 3. Set sensitive fields explicitly
+$project = Project::create($validated);
+$project->user_id = auth()->id();  // Set separately
+$project->save();
+```
+
+### DON'T ❌
+
+```php
+// 1. Never use $request->all() blindly
+Project::create($request->all());  // DANGEROUS!
+
+// 2. Never leave both $fillable and $guarded empty
 class Project extends Model
 {
-    const CREATED_AT = 'creation_date';
-    const UPDATED_AT = 'last_modified';
+    // No protection = vulnerability!
 }
+
+// 3. Don't put sensitive fields in $fillable
+protected $fillable = ['name', 'is_admin'];  // BAD!
 ```
 
 ---
 
 ## Hands-On Exercise
 
-### Step 1: Create a Migration
-
-```bash
-php artisan make:migration create_projects_table
-```
-
-```php
-// database/migrations/xxxx_create_projects_table.php
-public function up(): void
-{
-    Schema::create('projects', function (Blueprint $table) {
-        $table->id();                    // Creates 'id' column
-        $table->string('name');
-        $table->text('description')->nullable();
-        $table->timestamps();            // Creates 'created_at' and 'updated_at'
-    });
-}
-```
-
-### Step 2: Create the Model
-
-```bash
-php artisan make:model Project
-```
+### Step 1: Update Your Project Model
 
 ```php
 // app/Models/Project.php
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
 class Project extends Model
 {
-    // That's it! Conventions handle the rest!
+    /**
+     * LESSON: Mass Assignment Protection
+     * 
+     * We whitelist ONLY the fields users should be able to set.
+     * Sensitive fields like 'user_id' should be set explicitly in controller.
+     */
+    protected $fillable = [
+        'name',
+        'description',
+    ];
 }
 ```
 
-### Step 3: Test It
+### Step 2: Safe Controller Usage
+
+```php
+// In your controller
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+    ]);
+    
+    // Mass assign validated data, set user_id explicitly
+    $project = new Project($validated);
+    $project->user_id = auth()->id();
+    $project->save();
+    
+    // Or use create() with merged data
+    $project = Project::create([
+        ...$validated,
+        'user_id' => auth()->id(),
+    ]);
+}
+```
+
+### Step 3: Test in Tinker
 
 ```bash
 php artisan tinker
 ```
 
 ```php
-// In tinker
-$project = new \App\Models\Project();
-$project->name = 'FlexBoard MVP';
-$project->save();
+// This works (fields are in $fillable)
+$project = \App\Models\Project::create([
+    'name' => 'Test Project',
+    'description' => 'Testing mass assignment',
+    'user_id' => 1,
+]);
 
-// Check it worked
-\App\Models\Project::first();
-// created_at and updated_at are automatically set!
+// Try to inject a field not in $fillable
+$project = \App\Models\Project::create([
+    'name' => 'Hacker Project',
+    'is_admin' => true,  // This will be ignored!
+]);
+
+$project->is_admin; // null or default - injection failed!
 ```
 
 ---
 
 ## Quick Reference
 
-| What | Convention | Customization |
-|------|------------|---------------|
-| Table name | `snake_case` plural of model | `protected $table = 'name';` |
-| Primary key | `id` (auto-increment int) | `protected $primaryKey = 'col';` |
-| Key type | Integer | `protected $keyType = 'string';` |
-| Auto-increment | Yes | `public $incrementing = false;` |
-| Timestamps | `created_at`, `updated_at` | `public $timestamps = false;` |
+| Approach | Use When | Example |
+|----------|----------|---------|
+| `$fillable` | You know exactly which fields are safe | `['name', 'email', 'bio']` |
+| `$guarded` | Most fields are safe, few are sensitive | `['id', 'is_admin']` |
+| Empty `$guarded` | Full control via validation (advanced) | `[]` |
 
 ---
 
 ## Next Branch
 
-Continue to `02-mass-assignment` to learn about protecting your models from mass assignment vulnerabilities!
+Continue to `03-accessors-mutators` to learn about transforming data in and out of your models!
 
 ```bash
-git checkout 02-mass-assignment
+git checkout 03-accessors-mutators
 ```
