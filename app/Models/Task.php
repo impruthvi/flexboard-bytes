@@ -2,29 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * LESSON: Mass Assignment with $fillable
+ * LESSON: Accessors, Mutators & Casting (Branch 03)
  *
- * This Task model shows a more complete example of $fillable usage.
- * Notice which fields are included and which are excluded.
+ * This model demonstrates:
+ * - Branch 02: Mass assignment protection with $fillable
+ * - Branch 03: Accessors, mutators, and attribute casting
  */
 class Task extends Model
 {
     /**
-     * Fields that CAN be mass assigned.
-     *
-     * INCLUDED: User-controllable fields
-     * - title, description: User input
-     * - priority, difficulty: User selection
-     *
-     * EXCLUDED (set explicitly):
-     * - project_id: Set in controller based on route/auth
-     * - points: Calculated or set by system
-     * - is_completed: Changed via specific action
-     * - completed_at: Set when task is completed
-     *
      * @var array<string>
      */
     protected $fillable = [
@@ -35,18 +25,102 @@ class Task extends Model
     ];
 
     /**
-     * WRONG WAY - Too permissive:
+     * LESSON: Attribute Casting
      *
-     * protected $fillable = [
-     *     'title',
-     *     'description',
-     *     'project_id',    // ❌ User could assign to any project!
-     *     'points',        // ❌ User could give themselves points!
-     *     'is_completed',  // ❌ User could mark anything complete!
-     * ];
+     * Casts automatically convert database values to PHP types.
+     * - 'boolean': 1/0 becomes true/false
+     * - 'datetime': String becomes Carbon instance
+     * - 'integer': Ensures numeric type
      *
-     * ALSO WRONG - No protection:
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_completed' => 'boolean',   // DB: 1 → PHP: true
+            'completed_at' => 'datetime',  // DB: "2024-01-15 10:30:00" → Carbon
+            'points' => 'integer',         // Ensures it's always an int
+        ];
+    }
+
+    /**
+     * LESSON: Accessor - Transform data when READING
      *
-     * protected $guarded = [];  // ❌ Allows everything!
+     * Get a color code based on priority level.
+     * This is a "virtual" attribute - it doesn't exist in the database!
+     *
+     * Usage: $task->priority_color  // Returns "#ef4444" for high priority
+     */
+    protected function priorityColor(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => match ($this->priority) {
+                'low' => '#22c55e',     // Green - chill vibes
+                'medium' => '#f59e0b',  // Amber - getting spicy
+                'high' => '#ef4444',    // Red - it's urgent fam!
+                default => '#6b7280',   // Gray - undefined
+            },
+        );
+    }
+
+    /**
+     * LESSON: Accessor - Another example
+     *
+     * Get difficulty with an emoji for extra Gen Z energy.
+     *
+     * Usage: $task->difficulty_label  // Returns "🔥 Hard"
+     */
+    protected function difficultyLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => match ($this->difficulty) {
+                'easy' => '😎 Easy',
+                'medium' => '💪 Medium',
+                'hard' => '🔥 Hard',
+                'nightmare' => '💀 Nightmare',
+                default => '❓ Unknown',
+            },
+        );
+    }
+
+    /**
+     * LESSON: Accessor - Format title
+     *
+     * Ensure title is always properly capitalized when reading.
+     * The database might have "fix the bug" but we display "Fix The Bug".
+     */
+    protected function title(): Attribute
+    {
+        return Attribute::make(
+            get: fn (string $value) => ucwords($value),
+            // No mutator - we store as-is, just display nicely
+        );
+    }
+
+    /**
+     * LESSON: Include virtual attributes in JSON/array output
+     *
+     * When you call $task->toArray() or return JSON from API,
+     * these computed attributes will be included.
+     *
+     * @var array<string>
+     */
+    protected $appends = [
+        'priority_color',
+        'difficulty_label',
+    ];
+
+    /**
+     * LESSON: Combined Accessor + Mutator Example
+     *
+     * Here's how you'd do both in one method (not used here, just for reference):
+     *
+     * protected function email(): Attribute
+     * {
+     *     return Attribute::make(
+     *         get: fn (string $value) => strtolower($value),  // Always read as lowercase
+     *         set: fn (string $value) => strtolower($value),  // Always store as lowercase
+     *     );
+     * }
      */
 }

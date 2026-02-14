@@ -1,251 +1,258 @@
-# Branch 02: Mass Assignment Protection
+# Branch 03: Accessors, Mutators & Attribute Casting
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- What mass assignment is and why it's dangerous
-- How to use `$fillable` to whitelist attributes
-- How to use `$guarded` to blacklist attributes
-- Best practices for protecting your models
+- How to transform data when reading (accessors)
+- How to transform data when writing (mutators)
+- How to use attribute casting for automatic type conversion
+- Laravel 11+ attribute syntax using `Attribute` class
 
 ---
 
-## What is Mass Assignment?
+## What Are Accessors & Mutators?
 
-Mass assignment is when you set multiple model attributes at once using an array:
+- **Accessor**: Transforms data when you READ from the model
+- **Mutator**: Transforms data when you WRITE to the model
 
-```php
-// This is mass assignment
-$project = Project::create([
-    'name' => 'FlexBoard MVP',
-    'description' => 'The best task tracker ever',
-    'user_id' => 1,
-]);
-
-// This is also mass assignment
-$project->update($request->all());
-```
+Think of them as "data transformers" that sit between your code and the database.
 
 ---
 
-## The Danger: Mass Assignment Vulnerability
+## Modern Syntax (Laravel 9+)
 
-### The Attack Scenario
-
-Imagine your User model has an `is_admin` column. A malicious user could:
+Laravel 9+ uses the `Attribute` class for a cleaner, unified syntax:
 
 ```php
-// Your innocent form
-POST /register
-{
-    "name": "Priya Sharma",
-    "email": "priya@example.com",
-    "password": "secret123"
-}
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
-// Hacker's modified request
-POST /register
+protected function firstName(): Attribute
 {
-    "name": "Hacker Singh",
-    "email": "hacker@evil.com",
-    "password": "secret123",
-    "is_admin": true  // <- INJECTED!
+    return Attribute::make(
+        get: fn (string $value) => ucfirst($value),  // Accessor
+        set: fn (string $value) => strtolower($value), // Mutator
+    );
 }
 ```
 
-### Vulnerable Code (NEVER DO THIS!)
-
-```php
-// ❌ DANGEROUS - accepts any field from request
-User::create($request->all());
-
-// Hacker is now an admin! 🚨
-```
-
 ---
 
-## Solution 1: $fillable (Whitelist)
+## Accessors: Transform on Read
 
-Define which attributes ARE mass assignable.
+### Example: Format a Name
 
 ```php
-class Project extends Model
+// Database stores: "priya sharma"
+// You want to display: "Priya Sharma"
+
+protected function name(): Attribute
 {
-    // Only these fields can be mass assigned
-    protected $fillable = [
-        'name',
-        'description',
-        'user_id',
-    ];
-    
-    // 'is_admin', 'total_points', etc. are protected!
-}
-```
-
-### Now the attack fails:
-
-```php
-Project::create([
-    'name' => 'Legit Project',
-    'is_admin' => true,  // IGNORED! Not in $fillable
-]);
-```
-
----
-
-## Solution 2: $guarded (Blacklist)
-
-Define which attributes are NOT mass assignable.
-
-```php
-class Project extends Model
-{
-    // These fields CANNOT be mass assigned
-    protected $guarded = [
-        'id',
-        'is_admin',
-        'total_points',
-    ];
-    
-    // Everything else is allowed
-}
-```
-
-### Special Case: Empty Guarded
-
-```php
-// ⚠️ DANGER: Allows ALL fields to be mass assigned
-protected $guarded = [];
-
-// Only use this if you REALLY know what you're doing
-// and are manually validating every input!
-```
-
----
-
-## Best Practices
-
-### DO ✅
-
-```php
-// 1. Always use $fillable (preferred) or $guarded
-protected $fillable = ['name', 'description'];
-
-// 2. Validate input before mass assignment
-$validated = $request->validate([
-    'name' => 'required|string|max:255',
-    'description' => 'nullable|string',
-]);
-Project::create($validated);
-
-// 3. Set sensitive fields explicitly
-$project = Project::create($validated);
-$project->user_id = auth()->id();  // Set separately
-$project->save();
-```
-
-### DON'T ❌
-
-```php
-// 1. Never use $request->all() blindly
-Project::create($request->all());  // DANGEROUS!
-
-// 2. Never leave both $fillable and $guarded empty
-class Project extends Model
-{
-    // No protection = vulnerability!
+    return Attribute::make(
+        get: fn (string $value) => ucwords($value),
+    );
 }
 
-// 3. Don't put sensitive fields in $fillable
-protected $fillable = ['name', 'is_admin'];  // BAD!
+// Usage
+$user->name; // "Priya Sharma" (even though DB has "priya sharma")
+```
+
+### Example: Computed/Virtual Attribute
+
+```php
+// Create an attribute that doesn't exist in the database
+
+protected function fullName(): Attribute
+{
+    return Attribute::make(
+        get: fn () => "{$this->first_name} {$this->last_name}",
+    );
+}
+
+// Usage
+$user->full_name; // "Priya Sharma"
 ```
 
 ---
 
-## Hands-On Exercise
+## Mutators: Transform on Write
 
-### Step 1: Update Your Project Model
+### Example: Auto-Lowercase Email
 
 ```php
-// app/Models/Project.php
-class Project extends Model
+protected function email(): Attribute
 {
-    /**
-     * LESSON: Mass Assignment Protection
-     * 
-     * We whitelist ONLY the fields users should be able to set.
-     * Sensitive fields like 'user_id' should be set explicitly in controller.
-     */
-    protected $fillable = [
-        'name',
-        'description',
+    return Attribute::make(
+        set: fn (string $value) => strtolower($value),
+    );
+}
+
+// Usage
+$user->email = 'PRIYA@EXAMPLE.COM';
+$user->save();
+// Database stores: "priya@example.com"
+```
+
+### Example: Hash Password Automatically
+
+```php
+protected function password(): Attribute
+{
+    return Attribute::make(
+        set: fn (string $value) => bcrypt($value),
+    );
+}
+
+// Usage
+$user->password = 'secret123';
+// Database stores: "$2y$10$..." (hashed)
+```
+
+---
+
+## Attribute Casting
+
+Casting automatically converts attributes to common data types:
+
+```php
+protected function casts(): array
+{
+    return [
+        'is_completed' => 'boolean',
+        'points' => 'integer',
+        'settings' => 'array',
+        'completed_at' => 'datetime',
+        'metadata' => 'object',
+        'price' => 'decimal:2',
     ];
 }
 ```
 
-### Step 2: Safe Controller Usage
+### Cast Examples
 
 ```php
-// In your controller
-public function store(Request $request)
+// Database: is_completed = 1 (integer)
+$task->is_completed; // true (boolean)
+
+// Database: settings = '{"theme":"dark"}'
+$task->settings; // ['theme' => 'dark'] (array)
+$task->settings['theme']; // "dark"
+
+// Database: completed_at = "2024-01-15 10:30:00"
+$task->completed_at; // Carbon instance
+$task->completed_at->diffForHumans(); // "2 hours ago"
+```
+
+---
+
+## Practical FlexBoard Examples
+
+### Task Model: Priority Color
+
+```php
+// Get a color based on priority
+protected function priorityColor(): Attribute
 {
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-    ]);
-    
-    // Mass assign validated data, set user_id explicitly
-    $project = new Project($validated);
-    $project->user_id = auth()->id();
-    $project->save();
-    
-    // Or use create() with merged data
-    $project = Project::create([
-        ...$validated,
-        'user_id' => auth()->id(),
-    ]);
+    return Attribute::make(
+        get: fn () => match($this->priority) {
+            'low' => '#22c55e',    // green
+            'medium' => '#f59e0b', // amber
+            'high' => '#ef4444',   // red
+            default => '#6b7280',  // gray
+        },
+    );
 }
+
+// Usage in Blade
+<span style="color: {{ $task->priority_color }}">
+    {{ $task->priority }}
+</span>
 ```
 
-### Step 3: Test in Tinker
-
-```bash
-php artisan tinker
-```
+### Project Model: Completion Percentage
 
 ```php
-// This works (fields are in $fillable)
-$project = \App\Models\Project::create([
-    'name' => 'Test Project',
-    'description' => 'Testing mass assignment',
-    'user_id' => 1,
-]);
+protected function completionPercentage(): Attribute
+{
+    return Attribute::make(
+        get: function () {
+            $total = $this->tasks()->count();
+            if ($total === 0) return 0;
+            
+            $completed = $this->tasks()->where('is_completed', true)->count();
+            return round(($completed / $total) * 100);
+        },
+    );
+}
 
-// Try to inject a field not in $fillable
-$project = \App\Models\Project::create([
-    'name' => 'Hacker Project',
-    'is_admin' => true,  // This will be ignored!
-]);
+// Usage
+$project->completion_percentage; // 75
+```
 
-$project->is_admin; // null or default - injection failed!
+### Auto-Generate Slug
+
+```php
+protected function name(): Attribute
+{
+    return Attribute::make(
+        set: function (string $value) {
+            return [
+                'name' => $value,
+                'slug' => Str::slug($value),
+            ];
+        },
+    );
+}
+
+// Usage
+$project->name = 'My Awesome Project';
+// name = "My Awesome Project"
+// slug = "my-awesome-project" (auto-generated!)
+```
+
+---
+
+## Appending Computed Attributes to JSON
+
+For API responses, append virtual attributes:
+
+```php
+protected $appends = ['full_name', 'completion_percentage'];
+
+// Now when you do:
+return $project->toJson();
+// These computed attributes are included!
 ```
 
 ---
 
 ## Quick Reference
 
-| Approach | Use When | Example |
-|----------|----------|---------|
-| `$fillable` | You know exactly which fields are safe | `['name', 'email', 'bio']` |
-| `$guarded` | Most fields are safe, few are sensitive | `['id', 'is_admin']` |
-| Empty `$guarded` | Full control via validation (advanced) | `[]` |
+| Feature | Purpose | Example |
+|---------|---------|---------|
+| Accessor (get) | Transform on read | `ucwords($name)` |
+| Mutator (set) | Transform on write | `strtolower($email)` |
+| Casting | Auto type conversion | `'boolean'`, `'array'` |
+| `$appends` | Include in JSON | Virtual attributes |
+
+---
+
+## Hands-On Exercise
+
+Update your Task model with:
+
+1. A `priority_color` accessor
+2. A `difficulty_label` accessor  
+3. Cast `is_completed` to boolean
+4. Cast `completed_at` to datetime
+
+Then test in tinker!
 
 ---
 
 ## Next Branch
 
-Continue to `03-accessors-mutators` to learn about transforming data in and out of your models!
+Continue to `04-scopes` to learn about reusable query constraints!
 
 ```bash
-git checkout 03-accessors-mutators
+git checkout 04-scopes
 ```
