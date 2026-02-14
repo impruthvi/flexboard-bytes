@@ -1,11 +1,672 @@
-@import 'tailwindcss';
+/* Custom Fonts - Bold & Distinctive */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap');
 
+@import 'tailwindcss';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../views/**/*.blade.php';
+
+/* ============================================
+   FLEXBOARD - GEN Z CYBERPUNK AESTHETIC
+   Neon chaos meets glassmorphism
+   ============================================ */
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Neon Color Palette */
+    --color-neon-pink: #ff2d92;
+    --color-neon-cyan: #00f5ff;
+    --color-neon-purple: #bf5af2;
+    --color-neon-green: #39ff14;
+    --color-neon-orange: #ff6b35;
+    --color-neon-yellow: #f7ff00;
+
+    /* Dark Backgrounds */
+    --color-void: #0a0a0f;
+    --color-void-light: #12121a;
+    --color-void-lighter: #1a1a25;
+    --color-void-card: #1e1e2e;
+
+    /* Glass Effects */
+    --color-glass: rgba(255, 255, 255, 0.05);
+    --color-glass-border: rgba(255, 255, 255, 0.1);
+    --color-glass-hover: rgba(255, 255, 255, 0.08);
+
+    /* Semantic Colors */
+    --color-flex-primary: var(--color-neon-cyan);
+    --color-flex-secondary: var(--color-neon-pink);
+    --color-flex-accent: var(--color-neon-purple);
+    --color-flex-success: var(--color-neon-green);
+    --color-flex-warning: var(--color-neon-orange);
+    --color-flex-points: var(--color-neon-yellow);
+
+    /* Typography */
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Animations */
+    --animate-glow: glow 2s ease-in-out infinite alternate;
+    --animate-float: float 3s ease-in-out infinite;
+    --animate-pulse-neon: pulse-neon 2s ease-in-out infinite;
+    --animate-gradient: gradient-shift 8s ease infinite;
+    --animate-shake: shake 0.5s ease-in-out;
+    --animate-bounce-in: bounce-in 0.6s ease-out;
+    --animate-slide-up: slide-up 0.4s ease-out;
+    --animate-slide-down: slide-down 0.4s ease-out;
+    --animate-fade-in: fade-in 0.3s ease-out;
+
+    /* Shadows */
+    --shadow-neon-pink: 0 0 20px rgba(255, 45, 146, 0.5), 0 0 40px rgba(255, 45, 146, 0.3);
+    --shadow-neon-cyan: 0 0 20px rgba(0, 245, 255, 0.5), 0 0 40px rgba(0, 245, 255, 0.3);
+    --shadow-neon-purple: 0 0 20px rgba(191, 90, 242, 0.5), 0 0 40px rgba(191, 90, 242, 0.3);
+    --shadow-neon-green: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 40px rgba(57, 255, 20, 0.3);
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+@keyframes glow {
+    from {
+        filter: drop-shadow(0 0 5px currentColor);
+    }
+    to {
+        filter: drop-shadow(0 0 20px currentColor) drop-shadow(0 0 40px currentColor);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes pulse-neon {
+    0%, 100% {
+        opacity: 1;
+        filter: brightness(1);
+    }
+    50% {
+        opacity: 0.8;
+        filter: brightness(1.2);
+    }
+}
+
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes bounce-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-void);
+    color: #e4e4e7;
+    overflow-x: hidden;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-void-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--color-neon-pink), var(--color-neon-purple));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--color-neon-cyan), var(--color-neon-pink));
+}
+
+/* Selection */
+::selection {
+    background: var(--color-neon-pink);
+    color: var(--color-void);
+}
+
+/* ============================================
+   COMPONENT CLASSES
+   ============================================ */
+
+/* Glass Card */
+.glass-card {
+    background: var(--color-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-glass);
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    background: var(--color-glass-hover);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Neon Text */
+.text-glow-pink {
+    color: var(--color-neon-pink);
+    text-shadow: 0 0 10px var(--color-neon-pink), 0 0 20px var(--color-neon-pink), 0 0 40px var(--color-neon-pink);
+}
+
+.text-glow-cyan {
+    color: var(--color-neon-cyan);
+    text-shadow: 0 0 10px var(--color-neon-cyan), 0 0 20px var(--color-neon-cyan), 0 0 40px var(--color-neon-cyan);
+}
+
+.text-glow-purple {
+    color: var(--color-neon-purple);
+    text-shadow: 0 0 10px var(--color-neon-purple), 0 0 20px var(--color-neon-purple), 0 0 40px var(--color-neon-purple);
+}
+
+.text-glow-green {
+    color: var(--color-neon-green);
+    text-shadow: 0 0 10px var(--color-neon-green), 0 0 20px var(--color-neon-green), 0 0 40px var(--color-neon-green);
+}
+
+/* Gradient Text */
+.gradient-text {
+    background: linear-gradient(135deg, var(--color-neon-cyan), var(--color-neon-pink), var(--color-neon-purple));
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-shift 5s ease infinite;
+}
+
+/* Neon Buttons */
+.btn-neon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.btn-neon-pink {
+    background: linear-gradient(135deg, var(--color-neon-pink), #ff6b9d);
+    color: white;
+    border: none;
+    box-shadow: var(--shadow-neon-pink);
+}
+
+.btn-neon-pink:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px rgba(255, 45, 146, 0.6), 0 0 60px rgba(255, 45, 146, 0.4);
+}
+
+.btn-neon-cyan {
+    background: linear-gradient(135deg, var(--color-neon-cyan), #4dfff3);
+    color: var(--color-void);
+    border: none;
+    box-shadow: var(--shadow-neon-cyan);
+}
+
+.btn-neon-cyan:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px rgba(0, 245, 255, 0.6), 0 0 60px rgba(0, 245, 255, 0.4);
+}
+
+.btn-neon-outline {
+    background: transparent;
+    color: var(--color-neon-cyan);
+    border: 2px solid var(--color-neon-cyan);
+    box-shadow: inset 0 0 20px rgba(0, 245, 255, 0.1);
+}
+
+.btn-neon-outline:hover {
+    background: var(--color-neon-cyan);
+    color: var(--color-void);
+    box-shadow: var(--shadow-neon-cyan);
+}
+
+/* Input Styles */
+.input-neon {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--color-void-light);
+    border: 2px solid var(--color-glass-border);
+    border-radius: 8px;
+    color: white;
+    font-family: var(--font-body);
+    transition: all 0.3s ease;
+}
+
+.input-neon:focus {
+    outline: none;
+    border-color: var(--color-neon-cyan);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+}
+
+.input-neon::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Badge/Chip Styles */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 9999px;
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-border);
+}
+
+.chip-pink {
+    background: rgba(255, 45, 146, 0.2);
+    border-color: var(--color-neon-pink);
+    color: var(--color-neon-pink);
+}
+
+.chip-cyan {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: var(--color-neon-cyan);
+    color: var(--color-neon-cyan);
+}
+
+.chip-purple {
+    background: rgba(191, 90, 242, 0.2);
+    border-color: var(--color-neon-purple);
+    color: var(--color-neon-purple);
+}
+
+.chip-green {
+    background: rgba(57, 255, 20, 0.2);
+    border-color: var(--color-neon-green);
+    color: var(--color-neon-green);
+}
+
+/* Progress Bar */
+.progress-neon {
+    width: 100%;
+    height: 8px;
+    background: var(--color-void-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-neon-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-neon-cyan), var(--color-neon-pink));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-neon-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Streak Fire Effect */
+.streak-fire {
+    position: relative;
+    display: inline-block;
+}
+
+.streak-fire::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(45deg, var(--color-neon-orange), var(--color-neon-yellow), var(--color-neon-orange));
+    border-radius: inherit;
+    filter: blur(8px);
+    opacity: 0.6;
+    animation: pulse-neon 1.5s ease-in-out infinite;
+    z-index: -1;
+}
+
+/* Points Badge */
+.points-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(247, 255, 0, 0.2), rgba(255, 107, 53, 0.2));
+    border: 1px solid var(--color-neon-yellow);
+    border-radius: 8px;
+    color: var(--color-neon-yellow);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    text-shadow: 0 0 10px var(--color-neon-yellow);
+}
+
+/* Avatar Ring */
+.avatar-ring {
+    position: relative;
+    display: inline-block;
+    padding: 3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-neon-cyan), var(--color-neon-pink), var(--color-neon-purple));
+    animation: spin-slow 10s linear infinite;
+}
+
+.avatar-ring img {
+    display: block;
+    border-radius: 50%;
+    border: 3px solid var(--color-void);
+}
+
+/* Animated Background */
+.bg-grid-pattern {
+    background-image: 
+        linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+.bg-gradient-radial {
+    background: radial-gradient(ellipse at top, var(--color-void-lighter) 0%, var(--color-void) 70%);
+}
+
+.bg-mesh {
+    background: 
+        radial-gradient(at 40% 20%, rgba(255, 45, 146, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(0, 245, 255, 0.1) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(191, 90, 242, 0.1) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(57, 255, 20, 0.05) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(255, 107, 53, 0.1) 0px, transparent 50%);
+}
+
+/* Floating Orbs (decorative) */
+.orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.orb-pink {
+    background: var(--color-neon-pink);
+    opacity: 0.15;
+}
+
+.orb-cyan {
+    background: var(--color-neon-cyan);
+    opacity: 0.1;
+}
+
+.orb-purple {
+    background: var(--color-neon-purple);
+    opacity: 0.12;
+}
+
+/* Task Card */
+.task-card {
+    position: relative;
+    padding: 20px;
+    background: var(--color-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.task-card:hover {
+    transform: translateX(4px);
+    border-color: var(--color-neon-cyan);
+    box-shadow: -4px 0 20px rgba(0, 245, 255, 0.2);
+}
+
+.task-card.completed {
+    opacity: 0.6;
+    border-color: var(--color-neon-green);
+}
+
+.task-card.completed::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-neon-green);
+    border-radius: 12px 0 0 12px;
+}
+
+/* Leaderboard Row */
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.leaderboard-row:hover {
+    background: var(--color-glass-hover);
+    transform: scale(1.02);
+}
+
+.leaderboard-row.rank-1 {
+    border-color: var(--color-neon-yellow);
+    box-shadow: 0 0 30px rgba(247, 255, 0, 0.15);
+}
+
+.leaderboard-row.rank-2 {
+    border-color: rgba(192, 192, 192, 0.5);
+}
+
+.leaderboard-row.rank-3 {
+    border-color: rgba(205, 127, 50, 0.5);
+}
+
+/* Navigation Enhancements */
+.nav-link-neon {
+    position: relative;
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.nav-link-neon:hover {
+    color: var(--color-neon-cyan);
+}
+
+.nav-link-neon::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--color-neon-cyan);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-link-neon:hover::after,
+.nav-link-neon.active::after {
+    width: 100%;
+}
+
+.nav-link-neon.active {
+    color: var(--color-neon-cyan);
+}
+
+/* Flex Celebration Animation */
+.flex-celebration {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Emoji Rain (for flex celebrations) */
+@keyframes emoji-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.emoji-particle {
+    position: absolute;
+    font-size: 2rem;
+    animation: emoji-fall 3s ease-in forwards;
+}
+
+/* Typography Utilities */
+.font-display {
+    font-family: var(--font-display);
+}
+
+.font-mono {
+    font-family: var(--font-mono);
+}
+
+/* Stat Card */
+.stat-card {
+    padding: 24px;
+    background: var(--color-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.6);
 }
