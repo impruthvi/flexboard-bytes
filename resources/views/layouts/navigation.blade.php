@@ -28,8 +28,8 @@
                             Dashboard
                         </span>
                     </a>
-                    <a href="#"
-                       class="nav-link-neon">
+                    <a href="{{ route('projects.index') }}"
+                       class="nav-link-neon {{ request()->routeIs('projects.*') ? 'active' : '' }}">
                         <span class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
@@ -37,8 +37,8 @@
                             Projects
                         </span>
                     </a>
-                    <a href="#"
-                       class="nav-link-neon">
+                    <a href="{{ route('leaderboard.index') }}"
+                       class="nav-link-neon {{ request()->routeIs('leaderboard.*') ? 'active' : '' }}">
                         <span class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
@@ -139,12 +139,12 @@
                class="block py-3 px-4 rounded-lg {{ request()->routeIs('dashboard') ? 'bg-glass text-neon-cyan' : 'text-white/70 hover:bg-glass hover:text-white' }} transition-colors">
                 Dashboard
             </a>
-            <a href="#"
-               class="block py-3 px-4 rounded-lg text-white/70 hover:bg-glass hover:text-white transition-colors">
+            <a href="{{ route('projects.index') }}"
+               class="block py-3 px-4 rounded-lg {{ request()->routeIs('projects.*') ? 'bg-glass text-neon-cyan' : 'text-white/70 hover:bg-glass hover:text-white' }} transition-colors">
                 Projects
             </a>
-            <a href="#"
-               class="block py-3 px-4 rounded-lg text-white/70 hover:bg-glass hover:text-white transition-colors">
+            <a href="{{ route('leaderboard.index') }}"
+               class="block py-3 px-4 rounded-lg {{ request()->routeIs('leaderboard.*') ? 'bg-glass text-neon-cyan' : 'text-white/70 hover:bg-glass hover:text-white' }} transition-colors">
                 Leaderboard
             </a>
         </div>

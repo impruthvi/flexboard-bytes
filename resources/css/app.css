@@ -222,9 +222,7 @@ body {
 
 /* Glass Card */
 .glass-card {
-    background: var(--color-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-void-card);
     border: 1px solid var(--color-glass-border);
     border-radius: 16px;
     box-shadow: var(--shadow-glass);
@@ -232,7 +230,7 @@ body {
 }
 
 .glass-card:hover {
-    background: var(--color-glass-hover);
+    background: var(--color-void-lighter);
     border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
 }
@@ -553,14 +551,14 @@ body {
     align-items: center;
     gap: 16px;
     padding: 16px 20px;
-    background: var(--color-glass);
+    background: var(--color-void-card);
     border: 1px solid var(--color-glass-border);
     border-radius: 12px;
     transition: all 0.3s ease;
 }
 
 .leaderboard-row:hover {
-    background: var(--color-glass-hover);
+    background: var(--color-void-lighter);
     transform: scale(1.02);
 }
 
@@ -649,8 +647,7 @@ body {
 /* Stat Card */
 .stat-card {
     padding: 24px;
-    background: var(--color-glass);
-    backdrop-filter: blur(20px);
+    background: var(--color-void-card);
     border: 1px solid var(--color-glass-border);
     border-radius: 16px;
     text-align: center;
