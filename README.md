@@ -1,59 +1,204 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FlexBoard - Learn Laravel Eloquent by Building
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+    <img src="https://img.shields.io/badge/Laravel-12-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 12">
+    <img src="https://img.shields.io/badge/PHP-8.4-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.4">
+    <img src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind 4">
+    <img src="https://img.shields.io/badge/Pest-4-F472B6?style=for-the-badge" alt="Pest 4">
 </p>
 
-## About Laravel
+## What is FlexBoard?
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+FlexBoard is a **gamified task completion tracker** designed to teach Laravel Eloquent concepts to junior developers. Instead of reading dry documentation, you learn by building a real application through **11 progressive Git branches**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Each branch introduces a new Eloquent concept, building on the previous one. By the end, you'll have a complete, production-ready Laravel application and a deep understanding of Eloquent ORM.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Why FlexBoard?
 
-## Learning Laravel
+- **Learn by Doing**: Each branch has working code you can run and experiment with
+- **Progressive Complexity**: Start with basics (model conventions) and advance to complex topics (polymorphic relationships, eager loading)
+- **"Wrong then Right" Approach**: See intentionally broken code (N+1 queries) then learn the fix (eager loading)
+- **Interactive Lessons**: Built-in `/learn` route with Gen Z Cyberpunk-styled lesson pages
+- **Real-World Patterns**: Learn patterns you'll actually use in production apps
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## The Learning Journey
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Branch | Topic | What You'll Learn |
+|--------|-------|-------------------|
+| `01-model-conventions` | Model Conventions | Naming, tables, primary keys |
+| `02-mass-assignment` | Mass Assignment | `$fillable`, `$guarded`, security |
+| `03-accessors-mutators` | Accessors & Mutators | `casts()`, `Attribute` class |
+| `04-scopes` | Query Scopes | Reusable query logic |
+| `05-timestamps-softdeletes` | Timestamps & Soft Deletes | Auto-dates, recoverable deletes |
+| `06-basic-relationships` | Basic Relationships | `hasMany`, `belongsTo`, `hasOne` |
+| `07-many-to-many` | Many-to-Many | Pivot tables, `attach`, `sync` |
+| `08-polymorphic` | Polymorphic Relations | `morphTo`, `morphMany` |
+| `09-n-plus-one` | N+1 Problem | Understanding the performance killer |
+| `10-eager-loading` | Eager Loading | `with()`, `withCount()`, `load()` |
+| `11-complete-app` | Complete App | All best practices combined |
 
-## Laravel Sponsors
+## Getting Started
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Prerequisites
 
-### Premium Partners
+- PHP 8.4+
+- Composer
+- Node.js & npm
+- SQLite (or MySQL/PostgreSQL)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/impruthvi/flexboard-bytes.git
+cd flexboard-bytes
+
+# Install dependencies
+composer install
+npm install
+
+# Setup environment
+cp .env.example .env
+php artisan key:generate
+
+# Run migrations and seed data
+php artisan migrate:fresh --seed
+
+# Build assets
+npm run build
+
+# Start the server (or use Laravel Herd)
+php artisan serve
+```
+
+### Navigating Branches
+
+Each branch builds on the previous one:
+
+```bash
+# Start from the beginning
+git checkout 01-model-conventions
+
+# Move to the next lesson
+git checkout 02-mass-assignment
+
+# Jump to any lesson
+git checkout 07-many-to-many
+
+# See the complete application
+git checkout main
+```
+
+## Interactive Lessons
+
+Visit `/learn` in your browser to access the interactive lesson pages. Each lesson includes:
+
+- Learning objectives
+- Code examples (wrong vs. right approaches)
+- Visual tables and diagrams
+- Hands-on exercises
+- Git checkout commands
+
+## Project Structure
+
+```
+app/
+├── Http/Controllers/
+│   ├── LearnController.php      # Lesson page controller
+│   └── ...
+├── Models/
+│   ├── User.php
+│   ├── Project.php
+│   ├── Task.php
+│   ├── Tag.php
+│   ├── Comment.php
+│   ├── Reaction.php
+│   └── Flex.php
+resources/views/
+├── learn/                       # Lesson views
+│   ├── model-conventions.blade.php
+│   ├── mass-assignment.blade.php
+│   ├── accessors-mutators.blade.php
+│   ├── scopes.blade.php
+│   ├── timestamps-softdeletes.blade.php
+│   ├── basic-relationships.blade.php
+│   ├── many-to-many.blade.php
+│   ├── polymorphic.blade.php
+│   ├── n-plus-one.blade.php
+│   ├── eager-loading.blade.php
+│   └── complete-app.blade.php
+├── components/
+│   └── learn-layout.blade.php   # Lesson layout component
+└── welcome.blade.php            # Landing page
+```
+
+## Key Concepts Covered
+
+### Eloquent Basics
+- Model naming conventions
+- Mass assignment protection (`$fillable` / `$guarded`)
+- Attribute casting and accessors/mutators
+- Query scopes (local and dynamic)
+- Timestamps and soft deletes
+
+### Relationships
+- One-to-Many (`hasMany` / `belongsTo`)
+- One-to-One (`hasOne` / `belongsTo`)
+- Many-to-Many (`belongsToMany` with pivot tables)
+- Polymorphic (`morphTo` / `morphMany`)
+
+### Performance
+- Understanding the N+1 query problem
+- Eager loading with `with()`
+- Efficient counting with `withCount()`
+- Lazy eager loading with `load()`
+- Constrained eager loading
+
+## Running Tests
+
+```bash
+# Run all tests
+php artisan test
+
+# Run with coverage
+php artisan test --coverage
+
+# Run specific test
+php artisan test --filter=LearnControllerTest
+```
+
+## Tech Stack
+
+- **Framework**: Laravel 12
+- **PHP**: 8.4
+- **CSS**: Tailwind CSS 4
+- **Testing**: Pest 4
+- **Design**: Gen Z Cyberpunk aesthetic (neon colors, glassmorphism, dark mode)
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Contributions are welcome! If you'd like to:
 
-## Code of Conduct
+1. Add a new lesson
+2. Fix a bug
+3. Improve documentation
+4. Enhance the UI
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Please open an issue first to discuss the change.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Acknowledgments
+
+- Built with [Laravel](https://laravel.com)
+- Styled with [Tailwind CSS](https://tailwindcss.com)
+- Tested with [Pest](https://pestphp.com)
+
+---
+
+<p align="center">
+    <strong>Happy Learning!</strong><br>
+    <em>Go from Eloquent newbie to Eloquent ninja, one branch at a time.</em>
+</p>

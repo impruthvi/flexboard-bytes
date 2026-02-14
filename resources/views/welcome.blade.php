@@ -252,14 +252,14 @@
                         ['num' => '01', 'name' => 'Model Conventions', 'desc' => 'Naming, tables, keys', 'color' => 'cyan', 'slug' => 'model-conventions'],
                         ['num' => '02', 'name' => 'Mass Assignment', 'desc' => '$fillable & $guarded', 'color' => 'pink', 'slug' => 'mass-assignment'],
                         ['num' => '03', 'name' => 'Accessors & Mutators', 'desc' => 'casts() & Attribute', 'color' => 'purple', 'slug' => 'accessors-mutators'],
-                        ['num' => '04', 'name' => 'Query Scopes', 'desc' => 'Reusable query logic', 'color' => 'green', 'slug' => null],
-                        ['num' => '05', 'name' => 'Soft Deletes', 'desc' => 'Timestamps & recovery', 'color' => 'orange', 'slug' => null],
-                        ['num' => '06', 'name' => 'Basic Relationships', 'desc' => 'hasMany, belongsTo', 'color' => 'cyan', 'slug' => null],
-                        ['num' => '07', 'name' => 'Many-to-Many', 'desc' => 'Pivot tables & sync', 'color' => 'pink', 'slug' => null],
-                        ['num' => '08', 'name' => 'Polymorphic', 'desc' => 'morphTo & morphMany', 'color' => 'purple', 'slug' => null],
-                        ['num' => '09', 'name' => 'N+1 Problem', 'desc' => 'Intentionally broken!', 'color' => 'orange', 'slug' => null],
-                        ['num' => '10', 'name' => 'Eager Loading', 'desc' => 'with(), withCount()', 'color' => 'green', 'slug' => null],
-                        ['num' => '11', 'name' => 'Complete App', 'desc' => 'All best practices', 'color' => 'yellow', 'slug' => null],
+                        ['num' => '04', 'name' => 'Query Scopes', 'desc' => 'Reusable query logic', 'color' => 'green', 'slug' => 'scopes'],
+                        ['num' => '05', 'name' => 'Soft Deletes', 'desc' => 'Timestamps & recovery', 'color' => 'orange', 'slug' => 'timestamps-softdeletes'],
+                        ['num' => '06', 'name' => 'Basic Relationships', 'desc' => 'hasMany, belongsTo', 'color' => 'cyan', 'slug' => 'basic-relationships'],
+                        ['num' => '07', 'name' => 'Many-to-Many', 'desc' => 'Pivot tables & sync', 'color' => 'pink', 'slug' => 'many-to-many'],
+                        ['num' => '08', 'name' => 'Polymorphic', 'desc' => 'morphTo & morphMany', 'color' => 'purple', 'slug' => 'polymorphic'],
+                        ['num' => '09', 'name' => 'N+1 Problem', 'desc' => 'Intentionally broken!', 'color' => 'orange', 'slug' => 'n-plus-one'],
+                        ['num' => '10', 'name' => 'Eager Loading', 'desc' => 'with(), withCount()', 'color' => 'green', 'slug' => 'eager-loading'],
+                        ['num' => '11', 'name' => 'Complete App', 'desc' => 'All best practices', 'color' => 'yellow', 'slug' => 'complete-app'],
                     ];
                 @endphp
 

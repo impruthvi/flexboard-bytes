@@ -31,6 +31,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        /* Alpine.js cloak - prevent flash of unstyled content */
+        [x-cloak] { display: none !important; }
+
         /* Prism.js Customizations for Cyberpunk Theme */
         pre[class*="language-"] {
             background: rgba(10, 10, 15, 0.8) !important;
@@ -73,10 +76,10 @@
     </style>
 </head>
 <body class="font-sans antialiased bg-void min-h-screen" x-data="{ sidebarOpen: false }">
-    <!-- Floating Orbs -->
-    <div class="orb orb-pink w-72 h-72 -top-36 -left-36 animate-pulse opacity-50"></div>
-    <div class="orb orb-cyan w-64 h-64 top-1/2 -right-32 animate-pulse opacity-50" style="animation-delay: 1s;"></div>
-    <div class="orb orb-purple w-56 h-56 bottom-20 left-1/3 animate-pulse opacity-50" style="animation-delay: 2s;"></div>
+    <!-- Floating Orbs (static, subtle background) -->
+    <div class="orb orb-pink w-72 h-72 -top-36 -left-36 opacity-30"></div>
+    <div class="orb orb-cyan w-64 h-64 top-1/2 -right-32 opacity-30"></div>
+    <div class="orb orb-purple w-56 h-56 bottom-20 left-1/3 opacity-30"></div>
 
     <div class="relative min-h-screen flex">
         <!-- Mobile Sidebar Toggle -->
@@ -84,16 +87,20 @@
             @click="sidebarOpen = !sidebarOpen"
             class="lg:hidden fixed top-4 left-4 z-50 p-2 glass-card"
         >
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path x-show="!sidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                <path x-show="sidebarOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <!-- Hamburger Icon -->
+            <svg x-show="!sidebarOpen" class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <!-- Close Icon -->
+            <svg x-show="sidebarOpen" x-cloak class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
         </button>
 
         <!-- Sidebar -->
         <aside
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="fixed lg:sticky top-0 left-0 z-40 w-72 h-screen bg-void-light/95 backdrop-blur-xl border-r border-glass-border transition-transform duration-300 lg:translate-x-0 overflow-y-auto"
+            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+            class="fixed lg:sticky top-0 left-0 z-40 w-72 h-screen bg-void-light/95 backdrop-blur-xl border-r border-glass-border transition-transform duration-300 overflow-y-auto"
         >
             <div class="p-6">
                 <!-- Logo -->
@@ -178,8 +185,8 @@
         ></div>
 
         <!-- Main Content -->
-        <main class="flex-1 min-w-0 lg:ml-0">
-            <div class="max-w-4xl mx-auto px-6 py-12 lg:px-12">
+        <main class="flex-1 min-w-0">
+            <div class="max-w-4xl mx-auto px-6 py-12 lg:px-12 pt-16 lg:pt-12">
                 <!-- Lesson Header -->
                 <header class="mb-12">
                     <div class="flex items-center gap-4 mb-4">

@@ -221,8 +221,8 @@ protected function priorityColor(): Attribute
 }
 
 // Usage in Blade
-&lt;span style="color: {{ $task->priority_color }}"&gt;
-    {{ $task->priority }}
+&lt;span style="color: @{{ $task->priority_color }}"&gt;
+    @{{ $task->priority }}
 &lt;/span&gt;</code></pre>
                 </div>
             </div>
