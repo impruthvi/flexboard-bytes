@@ -112,7 +112,38 @@
     @endif
 
     <!-- Tasks Section -->
-    <div x-data="taskManager()" class="space-y-8">
+    <div x-data="taskManager()" class="space-y-8" x-on:keydown.escape.window="closeCelebration()">
+        <!-- Celebration Overlay -->
+        <div 
+            x-show="showCelebration" 
+            x-cloak
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-90"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-90"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-void/80 backdrop-blur-sm cursor-pointer"
+            x-on:click="closeCelebration()"
+        >
+            <div class="text-center" x-on:click.stop>
+                <div class="text-8xl mb-4 animate-bounce">🎉</div>
+                <h2 class="font-display text-3xl font-bold gradient-text mb-2" x-text="celebrationMessage"></h2>
+                <p class="text-neon-yellow text-2xl font-mono font-bold">+<span x-text="pointsEarned"></span> points!</p>
+                <template x-if="badgeEarned">
+                    <div class="mt-4">
+                        <p class="text-neon-purple">🏆 Badge Unlocked: <span x-text="badgeEarned.name"></span></p>
+                    </div>
+                </template>
+                <button 
+                    x-on:click="closeCelebration()" 
+                    class="mt-6 btn-neon btn-neon-cyan text-sm py-2 px-6"
+                >
+                    Keep Flexing!
+                </button>
+            </div>
+        </div>
+
         <!-- Pending Tasks -->
         <div>
             <h2 class="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -404,29 +435,6 @@
         </form>
     </x-modal>
 
-    <!-- Celebration Overlay -->
-    <div 
-        x-show="showCelebration" 
-        x-cloak
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 scale-90"
-        x-transition:enter-end="opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 scale-100"
-        x-transition:leave-end="opacity-0 scale-90"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-void/80 backdrop-blur-sm"
-        x-on:click="showCelebration = false"
-    >
-        <div class="text-center">
-            <div class="text-8xl mb-4 animate-bounce">🎉</div>
-            <h2 class="font-display text-3xl font-bold gradient-text mb-2" x-text="celebrationMessage"></h2>
-            <p class="text-neon-yellow text-2xl font-mono font-bold">+<span x-text="pointsEarned"></span> points!</p>
-            <div x-show="badgeEarned" class="mt-4">
-                <p class="text-neon-purple">🏆 Badge Unlocked: <span x-text="badgeEarned?.name"></span></p>
-            </div>
-        </div>
-    </div>
-
     @push('scripts')
     <script>
         function taskManager() {
@@ -460,15 +468,15 @@
                             if (pointsEl) {
                                 pointsEl.textContent = data.total_points.toLocaleString();
                             }
-
-                            // Reload page after animation
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 2000);
                         }
                     } catch (error) {
                         console.error('Error completing task:', error);
                     }
+                },
+
+                closeCelebration() {
+                    this.showCelebration = false;
+                    window.location.reload();
                 }
             }
         }
