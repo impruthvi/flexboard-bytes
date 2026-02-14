@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
- * LESSON: Basic Relationships (Branch 06)
+ * LESSON: Polymorphic Relationships (Branch 08)
  *
  * This model demonstrates:
  * - Branch 01: Naming conventions
@@ -18,6 +19,7 @@ use Illuminate\Support\Str;
  * - Branch 03: Accessors and mutators
  * - Branch 05: Soft deletes with cascading
  * - Branch 06: BelongsTo and HasMany relationships
+ * - Branch 08: MorphMany (Projects have Comments & Reactions)
  */
 class Project extends Model
 {
@@ -78,6 +80,39 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    // =========================================================================
+    // POLYMORPHIC RELATIONSHIPS (Branch 08)
+    // =========================================================================
+
+    /**
+     * LESSON: MorphMany - Projects Can Have Comments!
+     *
+     * The SAME Comment model works for Tasks AND Projects.
+     * This is the power of polymorphic relationships!
+     *
+     * Usage:
+     * $project->comments  // Collection of Comment models
+     * $project->comments()->create(['body' => 'Great project!'])
+     *
+     * @return MorphMany<Comment, $this>
+     */
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * LESSON: MorphMany - Projects Can Have Reactions!
+     *
+     * Users can react to projects with emojis.
+     *
+     * @return MorphMany<Reaction, $this>
+     */
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(Reaction::class, 'reactionable');
     }
 
     // =========================================================================

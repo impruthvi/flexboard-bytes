@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * LESSON: Basic Relationships (Branch 06)
+ * LESSON: Polymorphic Relationships (Branch 08)
  *
  * A Flex is a celebration message when a user completes a task.
- * It demonstrates belongsTo relationships.
+ * It demonstrates belongsTo relationships and can receive reactions.
+ *
+ * Branch 06: BelongsTo relationships
+ * Branch 08: MorphMany (Flexes can have Reactions)
  */
 class Flex extends Model
 {
@@ -30,7 +34,7 @@ class Flex extends Model
         'Main character energy! 🌟',
         'Sigma grindset activated! 🚀',
         'Slay ho gaya! 💅',
-        'Ekdum jhakaas! 🎯',
+        'Ekdum jhakaas! 🔯',
         'Full on beast mode! 🦁',
         'Bindaas complete kiya! 😎',
         'Mast kaam! Taali bajao! 👏',
@@ -71,5 +75,22 @@ class Flex extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    // =========================================================================
+    // POLYMORPHIC RELATIONSHIPS (Branch 08)
+    // =========================================================================
+
+    /**
+     * LESSON: MorphMany - Flexes Can Have Reactions!
+     *
+     * Users can react to flexes with emojis (🔥, 💯, etc.)
+     * Same Reaction model used for Tasks, Projects, Comments, AND Flexes!
+     *
+     * @return MorphMany<Reaction, $this>
+     */
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(Reaction::class, 'reactionable');
     }
 }

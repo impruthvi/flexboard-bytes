@@ -11,11 +11,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * LESSON: Many-to-Many Relationships (Branch 07)
+ * LESSON: Polymorphic Relationships (Branch 08)
  *
  * The User model now includes:
  * - Branch 06: HasMany, HasOne, HasManyThrough
  * - Branch 07: BelongsToMany (Users ↔ Badges)
+ * - Branch 08: HasMany for Comments and Reactions (user-owned)
  */
 class User extends Authenticatable
 {
@@ -104,5 +105,29 @@ class User extends Authenticatable
         return $this->belongsToMany(Badge::class)
             ->withPivot('earned_at', 'notes')  // Include extra pivot columns
             ->withTimestamps();                 // Auto-manage pivot timestamps
+    }
+
+    // =========================================================================
+    // USER'S CONTENT (Branch 08)
+    // =========================================================================
+
+    /**
+     * All comments made by this user (across all commentable models).
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * All reactions made by this user (across all reactionable models).
+     *
+     * @return HasMany<Reaction, $this>
+     */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(Reaction::class);
     }
 }

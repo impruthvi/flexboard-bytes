@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * LESSON: Many-to-Many Relationships (Branch 07)
+ * LESSON: Polymorphic Relationships (Branch 08)
  *
  * This model demonstrates:
  * - Branch 02: Mass assignment protection
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * - Branch 05: Soft deletes
  * - Branch 06: BelongsTo and HasMany relationships
  * - Branch 07: BelongsToMany (Tasks ↔ Tags)
+ * - Branch 08: MorphMany (Tasks have Comments & Reactions)
  */
 class Task extends Model
 {
@@ -85,6 +87,45 @@ class Task extends Model
     {
         return $this->belongsToMany(Tag::class, 'task_tag')
             ->withTimestamps();
+    }
+
+    // =========================================================================
+    // POLYMORPHIC RELATIONSHIPS (Branch 08)
+    // =========================================================================
+
+    /**
+     * LESSON: MorphMany Relationship
+     *
+     * A Task can have many Comments (polymorphic).
+     * Other models (Project, etc.) can also have Comments
+     * using the SAME Comment model!
+     *
+     * Usage:
+     * $task->comments  // Collection of Comment models
+     * $task->comments()->create(['body' => 'Nice!'])
+     *
+     * @return MorphMany<Comment, $this>
+     */
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    /**
+     * LESSON: Multiple MorphMany Relationships
+     *
+     * A model can have multiple polymorphic relationships!
+     * Tasks have both Comments AND Reactions.
+     *
+     * Usage:
+     * $task->reactions  // Collection of Reaction models
+     * $task->reactions()->create(['emoji' => '🔥'])
+     *
+     * @return MorphMany<Reaction, $this>
+     */
+    public function reactions(): MorphMany
+    {
+        return $this->morphMany(Reaction::class, 'reactionable');
     }
 
     // =========================================================================
