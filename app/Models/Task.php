@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * LESSON: Accessors, Mutators & Casting (Branch 03)
+ * LESSON: Query Scopes (Branch 04)
  *
  * This model demonstrates:
- * - Branch 02: Mass assignment protection with $fillable
- * - Branch 03: Accessors, mutators, and attribute casting
+ * - Branch 02: Mass assignment protection
+ * - Branch 03: Accessors, mutators, and casting
+ * - Branch 04: Local and dynamic query scopes
  */
 class Task extends Model
 {
@@ -25,51 +27,188 @@ class Task extends Model
     ];
 
     /**
-     * LESSON: Attribute Casting
-     *
-     * Casts automatically convert database values to PHP types.
-     * - 'boolean': 1/0 becomes true/false
-     * - 'datetime': String becomes Carbon instance
-     * - 'integer': Ensures numeric type
-     *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'is_completed' => 'boolean',   // DB: 1 → PHP: true
-            'completed_at' => 'datetime',  // DB: "2024-01-15 10:30:00" → Carbon
-            'points' => 'integer',         // Ensures it's always an int
+            'is_completed' => 'boolean',
+            'completed_at' => 'datetime',
+            'points' => 'integer',
         ];
     }
 
+    // =========================================================================
+    // LESSON: LOCAL SCOPES (Branch 04)
+    //
+    // Scopes are reusable query constraints. Define once, use everywhere!
+    // Method name starts with 'scope', but you call it without that prefix.
+    // =========================================================================
+
     /**
-     * LESSON: Accessor - Transform data when READING
+     * LESSON: Basic Local Scope
      *
-     * Get a color code based on priority level.
-     * This is a "virtual" attribute - it doesn't exist in the database!
+     * Filter to only incomplete tasks.
      *
-     * Usage: $task->priority_color  // Returns "#ef4444" for high priority
+     * Usage: Task::incomplete()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
      */
+    public function scopeIncomplete(Builder $query): Builder
+    {
+        return $query->where('is_completed', false);
+    }
+
+    /**
+     * LESSON: Another Basic Scope
+     *
+     * Filter to only completed tasks.
+     *
+     * Usage: Task::completed()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeCompleted(Builder $query): Builder
+    {
+        return $query->where('is_completed', true);
+    }
+
+    /**
+     * LESSON: Combined Scope
+     *
+     * High priority + incomplete = urgent!
+     * Scopes can combine multiple conditions.
+     *
+     * Usage: Task::urgent()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeUrgent(Builder $query): Builder
+    {
+        return $query->where('priority', 'high')
+            ->where('is_completed', false);
+    }
+
+    /**
+     * LESSON: Priority Scope
+     *
+     * Usage: Task::highPriority()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeHighPriority(Builder $query): Builder
+    {
+        return $query->where('priority', 'high');
+    }
+
+    /**
+     * LESSON: Dynamic Scope with Parameter
+     *
+     * Pass a parameter to make scopes flexible!
+     *
+     * Usage: Task::ofPriority('high')->get();
+     *        Task::ofPriority('low')->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeOfPriority(Builder $query, string $priority): Builder
+    {
+        return $query->where('priority', $priority);
+    }
+
+    /**
+     * LESSON: Another Dynamic Scope
+     *
+     * Usage: Task::ofDifficulty('nightmare')->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeOfDifficulty(Builder $query, string $difficulty): Builder
+    {
+        return $query->where('difficulty', $difficulty);
+    }
+
+    /**
+     * LESSON: Scope with Optional Parameter
+     *
+     * Usage: Task::highValue()->get();      // Points >= 50 (default)
+     *        Task::highValue(100)->get();   // Points >= 100
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeHighValue(Builder $query, int $minPoints = 50): Builder
+    {
+        return $query->where('points', '>=', $minPoints);
+    }
+
+    /**
+     * LESSON: Date-based Scope
+     *
+     * Usage: Task::createdToday()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeCreatedToday(Builder $query): Builder
+    {
+        return $query->whereDate('created_at', today());
+    }
+
+    /**
+     * LESSON: Complex Date Scope
+     *
+     * Completed tasks from this week - great for leaderboards!
+     *
+     * Usage: Task::completedThisWeek()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeCompletedThisWeek(Builder $query): Builder
+    {
+        return $query->where('is_completed', true)
+            ->whereBetween('completed_at', [
+                now()->startOfWeek(),
+                now()->endOfWeek(),
+            ]);
+    }
+
+    /**
+     * LESSON: Ordering Scope
+     *
+     * Usage: Task::recent()->get();
+     *
+     * @param  Builder<Task>  $query
+     * @return Builder<Task>
+     */
+    public function scopeRecent(Builder $query): Builder
+    {
+        return $query->orderBy('created_at', 'desc');
+    }
+
+    // =========================================================================
+    // ACCESSORS (from Branch 03)
+    // =========================================================================
+
     protected function priorityColor(): Attribute
     {
         return Attribute::make(
             get: fn () => match ($this->priority) {
-                'low' => '#22c55e',     // Green - chill vibes
-                'medium' => '#f59e0b',  // Amber - getting spicy
-                'high' => '#ef4444',    // Red - it's urgent fam!
-                default => '#6b7280',   // Gray - undefined
+                'low' => '#22c55e',
+                'medium' => '#f59e0b',
+                'high' => '#ef4444',
+                default => '#6b7280',
             },
         );
     }
 
-    /**
-     * LESSON: Accessor - Another example
-     *
-     * Get difficulty with an emoji for extra Gen Z energy.
-     *
-     * Usage: $task->difficulty_label  // Returns "🔥 Hard"
-     */
     protected function difficultyLabel(): Attribute
     {
         return Attribute::make(
@@ -83,44 +222,18 @@ class Task extends Model
         );
     }
 
-    /**
-     * LESSON: Accessor - Format title
-     *
-     * Ensure title is always properly capitalized when reading.
-     * The database might have "fix the bug" but we display "Fix The Bug".
-     */
     protected function title(): Attribute
     {
         return Attribute::make(
             get: fn (string $value) => ucwords($value),
-            // No mutator - we store as-is, just display nicely
         );
     }
 
     /**
-     * LESSON: Include virtual attributes in JSON/array output
-     *
-     * When you call $task->toArray() or return JSON from API,
-     * these computed attributes will be included.
-     *
      * @var array<string>
      */
     protected $appends = [
         'priority_color',
         'difficulty_label',
     ];
-
-    /**
-     * LESSON: Combined Accessor + Mutator Example
-     *
-     * Here's how you'd do both in one method (not used here, just for reference):
-     *
-     * protected function email(): Attribute
-     * {
-     *     return Attribute::make(
-     *         get: fn (string $value) => strtolower($value),  // Always read as lowercase
-     *         set: fn (string $value) => strtolower($value),  // Always store as lowercase
-     *     );
-     * }
-     */
 }

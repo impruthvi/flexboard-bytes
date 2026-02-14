@@ -1,258 +1,298 @@
-# Branch 03: Accessors, Mutators & Attribute Casting
+# Branch 04: Query Scopes
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- How to transform data when reading (accessors)
-- How to transform data when writing (mutators)
-- How to use attribute casting for automatic type conversion
-- Laravel 11+ attribute syntax using `Attribute` class
+- What query scopes are and why they're useful
+- How to create local scopes for reusable query constraints
+- How to create global scopes that apply automatically
+- How to make scopes dynamic with parameters
 
 ---
 
-## What Are Accessors & Mutators?
+## What Are Query Scopes?
 
-- **Accessor**: Transforms data when you READ from the model
-- **Mutator**: Transforms data when you WRITE to the model
+Scopes are reusable query constraints. Instead of repeating the same `where()` clauses everywhere, you define them once in your model.
 
-Think of them as "data transformers" that sit between your code and the database.
-
----
-
-## Modern Syntax (Laravel 9+)
-
-Laravel 9+ uses the `Attribute` class for a cleaner, unified syntax:
+### Without Scopes (Repetitive)
 
 ```php
-use Illuminate\Database\Eloquent\Casts\Attribute;
+// In controller A
+$tasks = Task::where('is_completed', false)->get();
 
-protected function firstName(): Attribute
-{
-    return Attribute::make(
-        get: fn (string $value) => ucfirst($value),  // Accessor
-        set: fn (string $value) => strtolower($value), // Mutator
-    );
-}
+// In controller B
+$tasks = Task::where('is_completed', false)->where('priority', 'high')->get();
+
+// In a job
+$tasks = Task::where('is_completed', false)->count();
+```
+
+### With Scopes (DRY - Don't Repeat Yourself)
+
+```php
+// In controller A
+$tasks = Task::incomplete()->get();
+
+// In controller B
+$tasks = Task::incomplete()->highPriority()->get();
+
+// In a job
+$tasks = Task::incomplete()->count();
 ```
 
 ---
 
-## Accessors: Transform on Read
+## Local Scopes
 
-### Example: Format a Name
+Local scopes are methods you call explicitly. They start with `scope` prefix.
+
+### Basic Local Scope
 
 ```php
-// Database stores: "priya sharma"
-// You want to display: "Priya Sharma"
-
-protected function name(): Attribute
+// In your model
+public function scopeIncomplete(Builder $query): Builder
 {
-    return Attribute::make(
-        get: fn (string $value) => ucwords($value),
-    );
+    return $query->where('is_completed', false);
+}
+
+// Usage - note: no "scope" prefix when calling!
+Task::incomplete()->get();
+```
+
+### Multiple Scopes (Chainable)
+
+```php
+public function scopeHighPriority(Builder $query): Builder
+{
+    return $query->where('priority', 'high');
+}
+
+public function scopeRecent(Builder $query): Builder
+{
+    return $query->orderBy('created_at', 'desc');
+}
+
+// Chain them together!
+Task::incomplete()->highPriority()->recent()->get();
+```
+
+### Dynamic Scopes (With Parameters)
+
+```php
+public function scopeOfPriority(Builder $query, string $priority): Builder
+{
+    return $query->where('priority', $priority);
+}
+
+public function scopeOfDifficulty(Builder $query, string $difficulty): Builder
+{
+    return $query->where('difficulty', $difficulty);
 }
 
 // Usage
-$user->name; // "Priya Sharma" (even though DB has "priya sharma")
-```
-
-### Example: Computed/Virtual Attribute
-
-```php
-// Create an attribute that doesn't exist in the database
-
-protected function fullName(): Attribute
-{
-    return Attribute::make(
-        get: fn () => "{$this->first_name} {$this->last_name}",
-    );
-}
-
-// Usage
-$user->full_name; // "Priya Sharma"
+Task::ofPriority('high')->get();
+Task::ofDifficulty('nightmare')->get();
+Task::ofPriority('high')->ofDifficulty('easy')->get();
 ```
 
 ---
 
-## Mutators: Transform on Write
+## Global Scopes
 
-### Example: Auto-Lowercase Email
+Global scopes apply automatically to ALL queries on a model. Use them carefully!
+
+### Common Use Case: Multi-tenancy
 
 ```php
-protected function email(): Attribute
+// Automatically filter by current user's team
+class TeamScope implements Scope
 {
-    return Attribute::make(
-        set: fn (string $value) => strtolower($value),
-    );
+    public function apply(Builder $builder, Model $model): void
+    {
+        $builder->where('team_id', auth()->user()->team_id);
+    }
 }
 
-// Usage
-$user->email = 'PRIYA@EXAMPLE.COM';
-$user->save();
-// Database stores: "priya@example.com"
+// In your model
+protected static function booted(): void
+{
+    static::addGlobalScope(new TeamScope);
+}
+
+// Now EVERY query is filtered!
+Task::all(); // Only shows current team's tasks
 ```
 
-### Example: Hash Password Automatically
+### Inline Global Scope
 
 ```php
-protected function password(): Attribute
+protected static function booted(): void
 {
-    return Attribute::make(
-        set: fn (string $value) => bcrypt($value),
-    );
+    static::addGlobalScope('active', function (Builder $builder) {
+        $builder->where('is_active', true);
+    });
 }
+```
 
-// Usage
-$user->password = 'secret123';
-// Database stores: "$2y$10$..." (hashed)
+### Removing Global Scopes
+
+```php
+// Remove a specific global scope
+Task::withoutGlobalScope('active')->get();
+Task::withoutGlobalScope(TeamScope::class)->get();
+
+// Remove ALL global scopes
+Task::withoutGlobalScopes()->get();
 ```
 
 ---
 
-## Attribute Casting
+## FlexBoard Examples
 
-Casting automatically converts attributes to common data types:
+### Task Scopes
 
 ```php
-protected function casts(): array
+class Task extends Model
 {
-    return [
-        'is_completed' => 'boolean',
-        'points' => 'integer',
-        'settings' => 'array',
-        'completed_at' => 'datetime',
-        'metadata' => 'object',
-        'price' => 'decimal:2',
-    ];
+    // Status scopes
+    public function scopeIncomplete(Builder $query): Builder
+    {
+        return $query->where('is_completed', false);
+    }
+
+    public function scopeCompleted(Builder $query): Builder
+    {
+        return $query->where('is_completed', true);
+    }
+
+    // Priority scopes
+    public function scopeHighPriority(Builder $query): Builder
+    {
+        return $query->where('priority', 'high');
+    }
+
+    public function scopeUrgent(Builder $query): Builder
+    {
+        return $query->where('priority', 'high')
+                     ->where('is_completed', false);
+    }
+
+    // Dynamic scope
+    public function scopeOfPriority(Builder $query, string $priority): Builder
+    {
+        return $query->where('priority', $priority);
+    }
+
+    // Points scope
+    public function scopeHighValue(Builder $query, int $minPoints = 50): Builder
+    {
+        return $query->where('points', '>=', $minPoints);
+    }
+
+    // Date scopes
+    public function scopeCreatedToday(Builder $query): Builder
+    {
+        return $query->whereDate('created_at', today());
+    }
+
+    public function scopeCompletedThisWeek(Builder $query): Builder
+    {
+        return $query->where('is_completed', true)
+                     ->whereBetween('completed_at', [
+                         now()->startOfWeek(),
+                         now()->endOfWeek(),
+                     ]);
+    }
 }
 ```
 
-### Cast Examples
+### Real Usage
 
 ```php
-// Database: is_completed = 1 (integer)
-$task->is_completed; // true (boolean)
+// Dashboard: Today's urgent tasks
+$urgentTasks = Task::urgent()->createdToday()->get();
 
-// Database: settings = '{"theme":"dark"}'
-$task->settings; // ['theme' => 'dark'] (array)
-$task->settings['theme']; // "dark"
+// Leaderboard: This week's completed high-value tasks
+$weeklyWins = Task::completedThisWeek()->highValue(100)->get();
 
-// Database: completed_at = "2024-01-15 10:30:00"
-$task->completed_at; // Carbon instance
-$task->completed_at->diffForHumans(); // "2 hours ago"
+// Filter by user selection
+$tasks = Task::ofPriority($request->priority)
+             ->ofDifficulty($request->difficulty)
+             ->paginate();
 ```
 
 ---
 
-## Practical FlexBoard Examples
+## Best Practices
 
-### Task Model: Priority Color
+### DO ✅
 
 ```php
-// Get a color based on priority
-protected function priorityColor(): Attribute
-{
-    return Attribute::make(
-        get: fn () => match($this->priority) {
-            'low' => '#22c55e',    // green
-            'medium' => '#f59e0b', // amber
-            'high' => '#ef4444',   // red
-            default => '#6b7280',  // gray
-        },
-    );
-}
+// 1. Use descriptive scope names
+public function scopePublished(Builder $query): Builder
 
-// Usage in Blade
-<span style="color: {{ $task->priority_color }}">
-    {{ $task->priority }}
-</span>
+// 2. Keep scopes focused (single responsibility)
+public function scopeHighPriority(Builder $query): Builder
+
+// 3. Make scopes chainable (return Builder)
+return $query->where(...);
+
+// 4. Use parameter scopes for flexibility
+public function scopeOfStatus(Builder $query, string $status): Builder
 ```
 
-### Project Model: Completion Percentage
+### DON'T ❌
 
 ```php
-protected function completionPercentage(): Attribute
+// 1. Don't put business logic in scopes
+public function scopeWithCalculations(Builder $query): Builder
 {
-    return Attribute::make(
-        get: function () {
-            $total = $this->tasks()->count();
-            if ($total === 0) return 0;
-            
-            $completed = $this->tasks()->where('is_completed', true)->count();
-            return round(($completed / $total) * 100);
-        },
-    );
+    // Don't do complex calculations here!
 }
 
-// Usage
-$project->completion_percentage; // 75
-```
-
-### Auto-Generate Slug
-
-```php
-protected function name(): Attribute
+// 2. Don't make scopes too broad
+public function scopeFiltered(Builder $query): Builder
 {
-    return Attribute::make(
-        set: function (string $value) {
-            return [
-                'name' => $value,
-                'slug' => Str::slug($value),
-            ];
-        },
-    );
+    // What does "filtered" mean? Be specific!
 }
 
-// Usage
-$project->name = 'My Awesome Project';
-// name = "My Awesome Project"
-// slug = "my-awesome-project" (auto-generated!)
-```
-
----
-
-## Appending Computed Attributes to JSON
-
-For API responses, append virtual attributes:
-
-```php
-protected $appends = ['full_name', 'completion_percentage'];
-
-// Now when you do:
-return $project->toJson();
-// These computed attributes are included!
+// 3. Don't forget to type-hint Builder
+public function scopeBad($query)  // Missing type hints!
 ```
 
 ---
 
 ## Quick Reference
 
-| Feature | Purpose | Example |
-|---------|---------|---------|
-| Accessor (get) | Transform on read | `ucwords($name)` |
-| Mutator (set) | Transform on write | `strtolower($email)` |
-| Casting | Auto type conversion | `'boolean'`, `'array'` |
-| `$appends` | Include in JSON | Virtual attributes |
+| Scope Type | Definition | Usage |
+|------------|------------|-------|
+| Local | `scopeName(Builder $query)` | `Model::name()` |
+| Dynamic | `scopeName(Builder $query, $param)` | `Model::name($value)` |
+| Global | `addGlobalScope()` in `booted()` | Auto-applied |
+| Remove Global | - | `withoutGlobalScope()` |
 
 ---
 
 ## Hands-On Exercise
 
-Update your Task model with:
+Add these scopes to your Task model:
+1. `scopeIncomplete()` - not completed tasks
+2. `scopeHighPriority()` - priority = 'high'  
+3. `scopeOfPriority($priority)` - dynamic priority filter
+4. `scopeCreatedToday()` - created today
 
-1. A `priority_color` accessor
-2. A `difficulty_label` accessor  
-3. Cast `is_completed` to boolean
-4. Cast `completed_at` to datetime
-
-Then test in tinker!
+Then test in tinker:
+```php
+Task::incomplete()->highPriority()->get();
+Task::ofPriority('low')->createdToday()->count();
+```
 
 ---
 
 ## Next Branch
 
-Continue to `04-scopes` to learn about reusable query constraints!
+Continue to `05-timestamps-softdeletes` to learn about automatic timestamps and soft deletes!
 
 ```bash
-git checkout 04-scopes
+git checkout 05-timestamps-softdeletes
 ```
