@@ -1,0 +1,47 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    /**
+     * LESSON: Table Naming Convention
+     *
+     * Notice the table is named 'projects' (plural, snake_case)
+     * while the model is 'Project' (singular, PascalCase).
+     *
+     * This is Laravel's convention - follow it and things work automagically!
+     */
+    public function up(): void
+    {
+        Schema::create('projects', function (Blueprint $table) {
+            // LESSON: Primary Key Convention
+            // id() creates an auto-incrementing BIGINT column named 'id'
+            // Laravel expects this by default
+            $table->id();
+
+            // Basic project fields
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
+            // LESSON: Timestamp Convention
+            // timestamps() creates 'created_at' and 'updated_at' columns
+            // Eloquent automatically manages these values
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('projects');
+    }
+};
