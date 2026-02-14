@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\LearnController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/learn', [LearnController::class, 'index'])->name('learn.index');
+Route::get('/learn/{topic}', [LearnController::class, 'show'])->name('learn.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
