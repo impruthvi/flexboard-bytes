@@ -5,17 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * LESSON: Query Scopes (Branch 04)
+ * LESSON: Soft Deletes (Branch 05)
  *
  * This model demonstrates:
  * - Branch 02: Mass assignment protection
  * - Branch 03: Accessors, mutators, and casting
  * - Branch 04: Local and dynamic query scopes
+ * - Branch 05: Soft deletes
  */
 class Task extends Model
 {
+    /**
+     * LESSON: SoftDeletes Trait (Branch 05)
+     *
+     * Tasks can be soft-deleted. When a project is deleted,
+     * its tasks are cascaded (see Project model's booted method).
+     */
+    use SoftDeletes;
+
     /**
      * @var array<string>
      */

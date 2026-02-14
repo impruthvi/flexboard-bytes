@@ -22,6 +22,9 @@ return new class extends Migration
             $table->boolean('is_completed')->default(false);
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
+
+            // LESSON: Soft Deletes (Branch 05)
+            $table->softDeletes();
         });
     }
 

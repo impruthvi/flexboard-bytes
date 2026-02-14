@@ -1,298 +1,287 @@
-# Branch 04: Query Scopes
+# Branch 05: Timestamps & Soft Deletes
 
 ## Learning Objectives
 
 By the end of this lesson, you will understand:
-- What query scopes are and why they're useful
-- How to create local scopes for reusable query constraints
-- How to create global scopes that apply automatically
-- How to make scopes dynamic with parameters
+- How Laravel auto-manages `created_at` and `updated_at`
+- How soft deletes work (mark as deleted vs actually delete)
+- How to restore soft-deleted records
+- Querying with and without soft-deleted records
 
 ---
 
-## What Are Query Scopes?
+## Timestamps: Auto-Magic Date Management
 
-Scopes are reusable query constraints. Instead of repeating the same `where()` clauses everywhere, you define them once in your model.
+### How It Works
 
-### Without Scopes (Repetitive)
+When you have `$table->timestamps()` in your migration, Laravel:
+- Sets `created_at` when you CREATE a record
+- Updates `updated_at` when you UPDATE a record
 
 ```php
-// In controller A
-$tasks = Task::where('is_completed', false)->get();
+$project = Project::create(['name' => 'FlexBoard']);
+// created_at: 2024-01-15 10:30:00
+// updated_at: 2024-01-15 10:30:00
 
-// In controller B
-$tasks = Task::where('is_completed', false)->where('priority', 'high')->get();
-
-// In a job
-$tasks = Task::where('is_completed', false)->count();
+$project->update(['name' => 'FlexBoard Pro']);
+// created_at: 2024-01-15 10:30:00 (unchanged)
+// updated_at: 2024-01-15 10:45:00 (auto-updated!)
 ```
 
-### With Scopes (DRY - Don't Repeat Yourself)
+### Customizing Timestamps
 
 ```php
-// In controller A
-$tasks = Task::incomplete()->get();
+// Disable timestamps entirely
+public $timestamps = false;
 
-// In controller B
-$tasks = Task::incomplete()->highPriority()->get();
+// Use custom column names
+const CREATED_AT = 'creation_date';
+const UPDATED_AT = 'last_modified';
 
-// In a job
-$tasks = Task::incomplete()->count();
-```
-
----
-
-## Local Scopes
-
-Local scopes are methods you call explicitly. They start with `scope` prefix.
-
-### Basic Local Scope
-
-```php
-// In your model
-public function scopeIncomplete(Builder $query): Builder
-{
-    return $query->where('is_completed', false);
-}
-
-// Usage - note: no "scope" prefix when calling!
-Task::incomplete()->get();
-```
-
-### Multiple Scopes (Chainable)
-
-```php
-public function scopeHighPriority(Builder $query): Builder
-{
-    return $query->where('priority', 'high');
-}
-
-public function scopeRecent(Builder $query): Builder
-{
-    return $query->orderBy('created_at', 'desc');
-}
-
-// Chain them together!
-Task::incomplete()->highPriority()->recent()->get();
-```
-
-### Dynamic Scopes (With Parameters)
-
-```php
-public function scopeOfPriority(Builder $query, string $priority): Builder
-{
-    return $query->where('priority', $priority);
-}
-
-public function scopeOfDifficulty(Builder $query, string $difficulty): Builder
-{
-    return $query->where('difficulty', $difficulty);
-}
-
-// Usage
-Task::ofPriority('high')->get();
-Task::ofDifficulty('nightmare')->get();
-Task::ofPriority('high')->ofDifficulty('easy')->get();
+// Touch (update updated_at) without changing anything else
+$project->touch();
 ```
 
 ---
 
-## Global Scopes
+## Soft Deletes: Delete Without Destroying
 
-Global scopes apply automatically to ALL queries on a model. Use them carefully!
-
-### Common Use Case: Multi-tenancy
+### The Problem with Hard Deletes
 
 ```php
-// Automatically filter by current user's team
-class TeamScope implements Scope
+// GONE FOREVER! 😱
+$project->delete();
+
+// User: "Wait, I didn't mean to delete that!"
+// You: "Sorry, it's gone..."
+```
+
+### The Solution: Soft Deletes
+
+Instead of removing the record, we mark it as deleted with a timestamp.
+
+```php
+// Record stays in database with deleted_at = 2024-01-15 10:30:00
+$project->delete();
+
+// User: "I need that back!"
+// You: "No problem!" 😎
+$project->restore();
+```
+
+---
+
+## Setting Up Soft Deletes
+
+### Step 1: Add the Column
+
+```php
+// In your migration
+Schema::create('projects', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->timestamps();
+    $table->softDeletes();  // Adds 'deleted_at' column
+});
+```
+
+### Step 2: Use the Trait
+
+```php
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Project extends Model
 {
-    public function apply(Builder $builder, Model $model): void
-    {
-        $builder->where('team_id', auth()->user()->team_id);
-    }
+    use SoftDeletes;  // Enable soft deletes!
+}
+```
+
+---
+
+## Working with Soft Deletes
+
+### Deleting (Soft)
+
+```php
+$project->delete();
+// Sets deleted_at = now()
+// Record is NOT removed from database!
+```
+
+### Querying (Auto-Excludes Deleted)
+
+```php
+// By default, soft-deleted records are hidden
+Project::all();  // Only returns non-deleted projects
+
+// Explicitly include soft-deleted
+Project::withTrashed()->get();
+
+// ONLY get soft-deleted
+Project::onlyTrashed()->get();
+```
+
+### Restoring
+
+```php
+// Bring it back!
+$project->restore();
+// Sets deleted_at = null
+```
+
+### Force Deleting (Permanent)
+
+```php
+// When you REALLY want to delete permanently
+$project->forceDelete();
+// Record is GONE from database!
+```
+
+---
+
+## Checking Soft Delete Status
+
+```php
+if ($project->trashed()) {
+    echo "This project is soft-deleted";
 }
 
-// In your model
+// Check in Blade
+@if($project->trashed())
+    <span class="text-red-500">Deleted</span>
+@endif
+```
+
+---
+
+## Cascading Soft Deletes
+
+When a project is deleted, should its tasks be deleted too?
+
+### Option 1: Manual in Model
+
+```php
 protected static function booted(): void
 {
-    static::addGlobalScope(new TeamScope);
-}
-
-// Now EVERY query is filtered!
-Task::all(); // Only shows current team's tasks
-```
-
-### Inline Global Scope
-
-```php
-protected static function booted(): void
-{
-    static::addGlobalScope('active', function (Builder $builder) {
-        $builder->where('is_active', true);
+    static::deleting(function (Project $project) {
+        // Soft delete all tasks when project is soft-deleted
+        $project->tasks()->delete();
+    });
+    
+    static::restoring(function (Project $project) {
+        // Restore tasks when project is restored
+        $project->tasks()->withTrashed()->restore();
     });
 }
 ```
 
-### Removing Global Scopes
+### Option 2: Use a Package
 
-```php
-// Remove a specific global scope
-Task::withoutGlobalScope('active')->get();
-Task::withoutGlobalScope(TeamScope::class)->get();
-
-// Remove ALL global scopes
-Task::withoutGlobalScopes()->get();
-```
+Consider `dyrynda/laravel-cascade-soft-deletes` for automatic cascading.
 
 ---
 
-## FlexBoard Examples
-
-### Task Scopes
+## FlexBoard Example
 
 ```php
-class Task extends Model
+class Project extends Model
 {
-    // Status scopes
-    public function scopeIncomplete(Builder $query): Builder
-    {
-        return $query->where('is_completed', false);
-    }
+    use SoftDeletes;
 
-    public function scopeCompleted(Builder $query): Builder
-    {
-        return $query->where('is_completed', true);
-    }
+    /**
+     * LESSON: Soft Deletes
+     *
+     * When you delete a project, it's not actually removed.
+     * The deleted_at column is set, and Eloquent hides it by default.
+     *
+     * Benefits:
+     * - User can restore accidentally deleted projects
+     * - You can audit what was deleted and when
+     * - Data is never truly lost (until force deleted)
+     */
 
-    // Priority scopes
-    public function scopeHighPriority(Builder $query): Builder
+    /**
+     * Cascade soft deletes to tasks.
+     */
+    protected static function booted(): void
     {
-        return $query->where('priority', 'high');
-    }
+        static::deleting(function (Project $project) {
+            $project->tasks()->delete();
+        });
 
-    public function scopeUrgent(Builder $query): Builder
-    {
-        return $query->where('priority', 'high')
-                     ->where('is_completed', false);
-    }
-
-    // Dynamic scope
-    public function scopeOfPriority(Builder $query, string $priority): Builder
-    {
-        return $query->where('priority', $priority);
-    }
-
-    // Points scope
-    public function scopeHighValue(Builder $query, int $minPoints = 50): Builder
-    {
-        return $query->where('points', '>=', $minPoints);
-    }
-
-    // Date scopes
-    public function scopeCreatedToday(Builder $query): Builder
-    {
-        return $query->whereDate('created_at', today());
-    }
-
-    public function scopeCompletedThisWeek(Builder $query): Builder
-    {
-        return $query->where('is_completed', true)
-                     ->whereBetween('completed_at', [
-                         now()->startOfWeek(),
-                         now()->endOfWeek(),
-                     ]);
+        static::restoring(function (Project $project) {
+            $project->tasks()->withTrashed()->restore();
+        });
     }
 }
-```
-
-### Real Usage
-
-```php
-// Dashboard: Today's urgent tasks
-$urgentTasks = Task::urgent()->createdToday()->get();
-
-// Leaderboard: This week's completed high-value tasks
-$weeklyWins = Task::completedThisWeek()->highValue(100)->get();
-
-// Filter by user selection
-$tasks = Task::ofPriority($request->priority)
-             ->ofDifficulty($request->difficulty)
-             ->paginate();
-```
-
----
-
-## Best Practices
-
-### DO ✅
-
-```php
-// 1. Use descriptive scope names
-public function scopePublished(Builder $query): Builder
-
-// 2. Keep scopes focused (single responsibility)
-public function scopeHighPriority(Builder $query): Builder
-
-// 3. Make scopes chainable (return Builder)
-return $query->where(...);
-
-// 4. Use parameter scopes for flexibility
-public function scopeOfStatus(Builder $query, string $status): Builder
-```
-
-### DON'T ❌
-
-```php
-// 1. Don't put business logic in scopes
-public function scopeWithCalculations(Builder $query): Builder
-{
-    // Don't do complex calculations here!
-}
-
-// 2. Don't make scopes too broad
-public function scopeFiltered(Builder $query): Builder
-{
-    // What does "filtered" mean? Be specific!
-}
-
-// 3. Don't forget to type-hint Builder
-public function scopeBad($query)  // Missing type hints!
 ```
 
 ---
 
 ## Quick Reference
 
-| Scope Type | Definition | Usage |
-|------------|------------|-------|
-| Local | `scopeName(Builder $query)` | `Model::name()` |
-| Dynamic | `scopeName(Builder $query, $param)` | `Model::name($value)` |
-| Global | `addGlobalScope()` in `booted()` | Auto-applied |
-| Remove Global | - | `withoutGlobalScope()` |
+| Operation | Code | Result |
+|-----------|------|--------|
+| Soft delete | `$model->delete()` | Sets `deleted_at` |
+| Restore | `$model->restore()` | Clears `deleted_at` |
+| Force delete | `$model->forceDelete()` | Removes from DB |
+| Get all | `Model::all()` | Excludes deleted |
+| Include deleted | `Model::withTrashed()` | All records |
+| Only deleted | `Model::onlyTrashed()` | Only deleted |
+| Check if deleted | `$model->trashed()` | Returns bool |
+
+---
+
+## Common Gotchas
+
+### 1. Unique Constraints
+
+```php
+// Problem: Deleted "FlexBoard" blocks creating new "FlexBoard"
+$table->string('slug')->unique();
+
+// Solution: Unique only when not deleted
+$table->string('slug');
+$table->unique(['slug', 'deleted_at']);
+
+// Or use a composite unique in MySQL 8+
+$table->rawIndex('UNIQUE INDEX projects_slug_unique (slug) WHERE deleted_at IS NULL');
+```
+
+### 2. Relationships Still Work
+
+```php
+// Even if project is soft-deleted, you can still access it
+$task->project;  // Works! Returns the soft-deleted project
+
+// To check in relationship
+$task->project()->withTrashed()->first();
+```
 
 ---
 
 ## Hands-On Exercise
 
-Add these scopes to your Task model:
-1. `scopeIncomplete()` - not completed tasks
-2. `scopeHighPriority()` - priority = 'high'  
-3. `scopeOfPriority($priority)` - dynamic priority filter
-4. `scopeCreatedToday()` - created today
+1. Add `SoftDeletes` to your Project and Task models
+2. Add `$table->softDeletes()` to the migrations
+3. Run migrations fresh
+4. Test in tinker:
 
-Then test in tinker:
 ```php
-Task::incomplete()->highPriority()->get();
-Task::ofPriority('low')->createdToday()->count();
+$project = Project::first();
+$project->delete();
+Project::all()->count();  // 0 (hidden)
+Project::withTrashed()->count();  // 1 (visible)
+$project->restore();
+Project::all()->count();  // 1 (back!)
 ```
 
 ---
 
 ## Next Branch
 
-Continue to `05-timestamps-softdeletes` to learn about automatic timestamps and soft deletes!
+Continue to `06-basic-relationships` to learn about model relationships!
 
 ```bash
-git checkout 05-timestamps-softdeletes
+git checkout 06-basic-relationships
 ```

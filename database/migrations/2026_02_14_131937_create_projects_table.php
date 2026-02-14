@@ -35,6 +35,11 @@ return new class extends Migration
             // timestamps() creates 'created_at' and 'updated_at' columns
             // Eloquent automatically manages these values
             $table->timestamps();
+
+            // LESSON: Soft Deletes (Branch 05)
+            // softDeletes() creates a 'deleted_at' column
+            // When deleted, record is hidden but not removed from DB
+            $table->softDeletes();
         });
     }
 
